@@ -28,8 +28,6 @@ Route::post('/register', [App\Http\Controllers\UserController::class, 'store']);
 
 Route::get('/getData', [App\Http\Controllers\UserController::class, 'getClassAndSubjects']);
 
-Route::get('/check-token-validity', [LoginController::class, 'checkTokenValidity']);
-
 // Apply auth:api middleware to all routes
 Route::middleware('auth:api')->group(function () {
 

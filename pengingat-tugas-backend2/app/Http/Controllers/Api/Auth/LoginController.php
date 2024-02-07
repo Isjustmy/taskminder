@@ -11,25 +11,6 @@ use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
-
-     /**
-     * Check if the user's JWT token is still valid.
-     *
-     * @param  Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function checkTokenValidity(Request $request)
-    {
-        try {
-            $user = JWTAuth::parseToken()->authenticate();
-            // Token is valid
-            return response()->json(['valid' => true]);
-        } catch (\Exception $e) {
-            // Token is not valid
-            return response()->json(['valid' => false]);
-        }
-    }
-
     public function index(Request $request){
         // set validasi
         $validator = Validator::make($request->all(), [
