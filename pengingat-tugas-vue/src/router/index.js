@@ -5,7 +5,7 @@ import Dashboard from '@/views/dashboard/Dashboard.vue'
 import Login from '@/views/Login.vue'
 import LandingPage from '@/views/LandingPage.vue'
 import TaskHome from '@/views/dashboard/task/TaskHome.vue'
-import { isAuthenticated, checkAuthStatus } from '@/auth/auth.js'
+import { isAuthenticated } from '@/auth/auth.js'
 import Register from '@/views/Register.vue'
 import { useToast } from 'vue-toastification'
 import UserHome from '@/views/dashboard/user/UserHome.vue'
@@ -49,25 +49,16 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach(async (to, from, next) => {
-  const toast = useToast()
+router.beforeEach((to, from, next) => {
   // Check if the route requires authentication
   if (to.matched.some((record) => record.meta.requiresAuth)) {
     // Check if user is authenticated
     if (!isAuthenticated()) {
+      const toast = useToast()
       toast.error('Silahkan Login Terlebih Dahulu')
-      next('/login')
+      next({ name: 'login' })
     } else {
-      try {
-        // Check if token is still valid by making a request to the API
-        await checkAuthStatus();
-        next()
-      } catch (error) {
-        // Token is invalid, redirect to login page
-        console.error('Token expired or invalid:', error)
-        toast.error('Token sudah tidak valid. Silahkan login kembali')
-        next('/login')
-      }
+      next()
     }
   } else {
     next()

@@ -42,18 +42,8 @@ api.interceptors.response.use(
     // check if response unauthenticated
     if (401 === error.response.status) {
       // remove token
-      Cookies.remove('token')
+      Cookies.remove('authData')
 
-      // remove user
-      Cookies.remove('user')
-
-      // remove permissions
-      Cookies.remove('permissions')
-
-      // redirect "/"
-      // Anda bisa menggunakan router Vue.js untuk melakukan redirect, contoh:
-      // store.dispatch('auth/logout'); // gantilah 'auth/logout' dengan action logout di store Anda
-      // router.push('/');
     } else if (403 === error.response.status) {
       // redirect "/forbidden"
       // store.dispatch('auth/forbidden'); // gantilah 'auth/forbidden' dengan action untuk halaman forbidden di store Anda
