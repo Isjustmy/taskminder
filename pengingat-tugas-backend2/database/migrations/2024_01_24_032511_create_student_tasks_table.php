@@ -19,11 +19,12 @@ return new class extends Migration
             $table->string('file_path')->nullable();
             $table->string('link')->nullable();
             $table->boolean('is_submitted')->nullable();
+            $table->boolean('is_late')->nullable();
             $table->tinyInteger('score')->nullable();
             $table->datetime('submitted_at')->nullable();
             $table->datetime('scored_at')->nullable();
             $table->text('feedback_content')->nullable();
-            $table->dateTime('updated_at');
+            $table->dateTime('updated_at')->nullable();
         });
     }
 

@@ -114,21 +114,17 @@ export default {
         password: ''
       },
       loginError: null,
-      loading: false
+      loading: false,
+      // Membuat instance toast di data
+      toast: useToast()
     }
-  },
-  setup() {
-    // Get toast interface
-    const toast = useToast()
-
-    return { toast }
   },
   created() {
     // Check if authentication data exists in cookies
-    const authData = Cookies.get('authData')
-    if (authData) {
+    const userData = Cookies.get('userData')
+    if (userData) {
       // Redirect to the dashboard or other page
-      this.$router.push('/dashboard/home')
+      this.$router.push({ name: 'home' })
     }
   },
   methods: {
@@ -140,50 +136,89 @@ export default {
           password: this.credentials.password
         })
 
-        // Save the entire response object
-        Cookies.set('authData', JSON.stringify(response.data))
+        const token = response.data.token
+
+        sessionStorage.setItem('tokenJWT', token)
+        sessionStorage.setItem('isLoggedIn', 'true')
+
+        // Mengambil hanya data yang dibutuhkan dari response API
+        const userData = {
+          user: response.data.user,
+          roles: response.data.roles,
+          permissions: response.data.permissions
+        }
+
+        // Mengatur data pengguna yang dipilih ke dalam cookie
+        Cookies.set('userData', JSON.stringify(userData))
 
         // Show success toast for 2 seconds
         this.toast.success('Login Berhasil', {
-          timeout: 1000
+          position: 'top-center',
+          timeout: 1500
         })
 
         // Delay for 2 seconds before redirecting to the dashboard
         setTimeout(() => {
           this.loading = false
-          this.$router.push('/dashboard/home')
+          this.$router.push({ name: 'home' })
         }, 500)
       } catch (error) {
         console.error('Login failed:', error)
+        this.loading = false
 
         if (error.response && error.response.data) {
           const errorData = error.response.data
-
-          // Assuming Laravel validation errors are returned as an object
-          if (typeof errorData === 'object') {
-            const toast = useToast()
-            for (const key in errorData) {
-              if (Object.hasOwnProperty.call(errorData, key)) {
-                const errorMessage = errorData[key][0]
-                toast.error(errorMessage, {
-                  timeout: 3500,
-                  hideProgressBar: true
-                })
-              }
-            }
+          if (errorData.email && errorData.password) {
+            // Error 1: Both email and password errors
+            const emailError = errorData.email[0]
+            const passwordError = errorData.password[0]
+            this.toast.error(`${emailError}`, {
+              timeout: 3500,
+              hideProgressBar: true
+            })
+            this.toast.error(`${passwordError}`, {
+              timeout: 3500,
+              hideProgressBar: true
+            })
+          } else if (errorData.email) {
+            // Error 2: Only email error
+            const emailError = errorData.email[0]
+            this.toast.error(emailError, {
+              timeout: 3500,
+              hideProgressBar: true
+            })
+          } else if (errorData.password) {
+            // Error 3: Only password error
+            const passwordError = errorData.password[0]
+            this.toast.error(passwordError, {
+              timeout: 3500,
+              hideProgressBar: true
+            })
+          } else if (errorData.message) {
+            // Handle specific error message from the server
+            const errorMessage = errorData.message
+            this.toast.error(errorMessage, {
+              timeout: 3500,
+              hideProgressBar: true
+            })
+          } else if (errorData.error) {
+            // Handle error from the server
+            const errorMessage = errorData.error
+            this.toast.error(errorMessage, {
+              timeout: 3500,
+              hideProgressBar: true
+            })
           } else {
             // Handle other types of errors
-            const toast = useToast()
-            toast.error('Login Gagal', {
-              timeout: 3500,
+            this.toast.error('Login Gagal', {
+              timeout: 2500,
               hideProgressBar: true
             })
           }
         } else {
           // Handle other types of errors
-          const toast = useToast()
-          toast.error('Login Gagal', {
-            timeout: 3500,
+          this.toast.error('Login Gagal', {
+            timeout: 2500,
             hideProgressBar: true
           })
         }

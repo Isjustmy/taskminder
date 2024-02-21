@@ -17,21 +17,17 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    // Tambahkan Authorization Bearer (token JWT) jika tersedia di Cookies
-    const authData = Cookies.get('authData');
-    if (authData) {
-      const authObject = JSON.parse(authData);
-      if (authObject && authObject.token) {
-        config.headers['Authorization'] = `Bearer ${authObject.token}`;
-      }
+    // Tambahkan Authorization Bearer (token JWT) jika tersedia di SessionStorage
+    const token = sessionStorage.getItem('tokenJWT')
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`
     }
-    return config;
+    return config
   },
   (error) => {
-    return Promise.reject(error);
+    return Promise.reject(error)
   }
-);
-
+)
 
 api.interceptors.response.use(
   function (response) {
@@ -42,12 +38,16 @@ api.interceptors.response.use(
     // check if response unauthenticated
     if (401 === error.response.status) {
       // remove token
-      Cookies.remove('authData')
-
+      Cookies.remove('userData')
+      sessionStorage.removeItem('isLoggedIn')
+      sessionStorage.removeItem('tokenJWT')
     } else if (403 === error.response.status) {
       // redirect "/forbidden"
       // store.dispatch('auth/forbidden'); // gantilah 'auth/forbidden' dengan action untuk halaman forbidden di store Anda
       // router.push('/forbidden');
+      Cookies.remove('userData')
+      sessionStorage.removeItem('isLoggedIn')
+      sessionStorage.removeItem('tokenJWT')
     } else {
       // reject promise error
       return Promise.reject(error)

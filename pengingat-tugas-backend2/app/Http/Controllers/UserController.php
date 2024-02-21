@@ -8,9 +8,13 @@ use App\Models\User;
 use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Validator;
 use App\Models\StudentClass;
+use App\Models\StudentIdentifier;
 use App\Models\StudentTasks;
 use App\Models\Task;
+use App\Models\TeacherIdentifier;
+use App\Notifications\TaskNotification;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -125,22 +129,34 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        $userAuth = auth()->guard('api')->user();
+
+        $isUserAdmin = false; // Default value false, jika pengguna tidak memiliki peran admin
+
+        if ($userAuth) { // Memeriksa apakah pengguna masuk
+            $userRoles = $userAuth->roles->pluck('name'); // Mendapatkan daftar peran pengguna
+            $isUserAdmin = $userRoles->contains('admin'); // Memeriksa apakah pengguna memiliki peran 'admin'
+        }
 
         $roles = $request->input('roles', []);
 
         $validator = Validator::make($request->all(), [
-            'nomor_absen' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|unique:users|integer' : 'nullable',
+            'nomor_absen' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|unique:users,nomor_absen,NULL,id,student_class_id,' . $request->class_id : 'nullable',
             'name' => 'required',
             'email' => 'required|unique:users',
             'password' => 'required|confirmed',
             'roles' => 'required',
             'phone_number' => 'required|numeric|unique:users,phone_number,',
             'class_id' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|exists:student_classes,id' : 'nullable',
+            'nisn' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required' : 'nullable',
+            'nis' => (in_array('guru', $roles)) ? 'required' : 'nullable',
             'guru_mata_pelajaran' => (in_array('guru', $roles)) ? 'required|in:RPL - Produktif,Animasi - Produktif,Broadcasting - Produktif,TO - Produktif,TPFL - Produktif,Matematika,Sejarah,Pendidikan Agama,IPAS,Olahraga,Bahasa Indonesia,Bahasa Sunda,Bahasa Inggris,Bahasa Jepang' : 'nullable',
         ], [
             'nomor_absen.required' => 'Nomor Absen wajib diisi untuk peran Siswa atau Pengurus Kelas.',
             'nomor_absen.integer' => 'Nomor Absen harus berupa angka.',
             'nomor_absen.unique' => 'Nomor Absen sudah digunakan.',
+
+            'name.required' => 'Nama wajib diisi.',
 
             'email.required' => 'Email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
@@ -166,6 +182,36 @@ class UserController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
+        // Periksa apakah request roles memuat peran admin
+        if (in_array('admin', $roles)) {
+            // Periksa apakah pengguna yang sedang login adalah admin
+            if (!$userAuth && !$isUserAdmin) {
+                // Jika pengguna tidak login sebagai admin, kembalikan error
+                return response()->json(['error' => 'Anda tidak boleh mendaftar sebagai admin.'], 422);
+            }
+        }
+
+        if (!$userAuth && !$isUserAdmin) {
+            // Jika pengguna tidak login atau tidak memiliki role admin, lakukan validasi NISN atau NIS
+            if (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) {
+                $studentIdentifier = StudentIdentifier::where('nisn', $request->nisn)->first();
+                if (!$studentIdentifier) {
+                    return response()->json(['error' => 'NISN tidak terdaftar. Anda tidak diizinkan mendaftar akun.'], 422);
+                }
+                if ($studentIdentifier->student_id) {
+                    return response()->json(['error' => 'Akun dengan NISN yang dimasukkan sudah ada sebelumnya.'], 422);
+                }
+            } elseif (in_array('guru', $roles)) {
+                $teacherIdentifier = TeacherIdentifier::where('nis', $request->nis)->first();
+                if (!$teacherIdentifier) {
+                    return response()->json(['error' => 'NIS tidak terdaftar. Anda tidak diizinkan mendaftar akun.'], 422);
+                }
+                if ($teacherIdentifier->teacher_id) {
+                    return response()->json(['error' => 'Akun dengan NIS yang dimasukkan sudah ada sebelumnya.'], 422);
+                }
+            }
+        }
+
         // Buat user
         $user = User::create([
             'nomor_absen' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? $request->nomor_absen : null,
@@ -180,6 +226,52 @@ class UserController extends Controller
         // Assign roles to user
         $user->assignRole($request->roles);
 
+        if (!$userAuth && !$isUserAdmin) {
+            // Update NISN and NIS with user_id based on roles
+            if (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) {
+                $studentIdentifierUpdate = StudentIdentifier::where('nisn', $request->nisn)->first();
+                if ($studentIdentifierUpdate) {
+                    $studentIdentifierUpdate->update(['student_id' => $user->id]);
+                } else {
+                    // Handle if student identifier not found
+                    return response()->json(['error' => 'Data NISN tidak ditemukan.'], 422);
+                }
+            } elseif (in_array('guru', $roles)) {
+                $teacherIdentifierUpdate = TeacherIdentifier::where('nis', $request->nis)->first();
+                if ($teacherIdentifierUpdate) {
+                    $teacherIdentifierUpdate->update(['teacher_id' => $user->id]);
+                } else {
+                    // Handle if teacher identifier not found
+                    return response()->json(['error' => 'Data NIS tidak ditemukan.'], 422);
+                }
+            }
+        } else {
+            // Admin sedang membuat akun, tambahkan NISN atau NIS baru jika tidak ditemukan di database
+            if (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) {
+                $studentIdentifierAdmin = StudentIdentifier::where('nisn', $request->nisn)->first();
+                if (!$studentIdentifierAdmin) {
+                    // NISN tidak ditemukan, tambahkan NISN baru ke database
+                    $studentIdentifierAdmin = StudentIdentifier::create([
+                        'nisn' => $request->nisn,
+                        'student_id' => $user->id,
+                    ]);
+                } else {
+                    $studentIdentifierAdmin->update(['student_id' => $user->id]);
+                }
+            } elseif (in_array('guru', $roles)) {
+                $teacherIdentifierAdmin = TeacherIdentifier::where('nis', $request->nis)->first();
+                if (!$teacherIdentifierAdmin) {
+                    // NIS tidak ditemukan, tambahkan NIS baru ke database
+                    $teacherIdentifierAdmin = TeacherIdentifier::create([
+                        'nis' => $request->nis,
+                        'teacher_id' => $user->id,
+                    ]);
+                } else {
+                    $teacherIdentifierAdmin->update(['teacher_id' => $user->id]);
+                }
+            }
+        }
+
         // Automatically create tasks for the student if any
         if ($request->roles === ['siswa', 'pengurus_kelas'] && $request->class_id) {
             $this->createTasksForStudent($user->id, $request->class_id);
@@ -191,7 +283,6 @@ class UserController extends Controller
             return new UserResource(false, 'Data User Gagal Disimpan!', null);
         }
     }
-
 
     /**
      * Automatically create tasks for the student if any.
@@ -208,14 +299,26 @@ class UserController extends Controller
         if ($tasks->count() > 0) {
             // Assign tasks to the student
             foreach ($tasks as $task) {
-                Task::create([
-                    'title' => $task->title,
-                    'description' => $task->description,
+                // Get the teacher id from the task
+                $teacherId = $task->creator_id;
+
+                // Create student tasks with teacher id
+                $studentTask = new StudentTasks([
                     'student_id' => $studentId,
-                    'deadline' => $task->deadline,
-                    'creator_id' => $task->creator_id,
-                    'created_at' => $task->created_at,
+                    'task_id' => $task->id,
+                    'teacher_id' => $teacherId,
+                    // Add additional information if needed
                 ]);
+                $studentTask->save();
+
+                // Send notification to the student
+                $student = User::find($studentId);
+                if ($student) {
+                    // Get the teacher name
+                    $teacher = User::find($teacherId);
+                    $guruName = $teacher->name;
+                    $student->notify(new TaskNotification($task, $guruName));
+                }
             }
         }
     }
@@ -229,29 +332,58 @@ class UserController extends Controller
      * 
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, User $user)
+    public function update(Request $request, $id)
     {
+        $loggedInUser = auth()->user();
+        $isUserAdminUpdate = false; // Default value false, jika pengguna tidak memiliki peran admin
+
+        if ($loggedInUser) { // Memeriksa apakah pengguna masuk
+            $userRoles = $loggedInUser->roles->pluck('name'); // Mendapatkan daftar peran pengguna
+            $isUserAdminUpdate = $userRoles->contains('admin'); // Memeriksa apakah pengguna memiliki peran 'admin'
+        }
+
+        $user = User::findOrFail($id);
         $roles = $request->input('roles', []);
 
         $validator = Validator::make($request->all(), [
             'nomor_absen' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|integer' : 'nullable',
             'name' => 'required',
-            'email' => 'required|unique:users,email,' . $user->id,
+            'email' => 'required',
             'password' => 'nullable|confirmed',
             'roles' => 'required',
             'phone_number' => 'required|numeric',
             'class_id' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|exists:student_classes,id' : 'nullable',
             'guru_mata_pelajaran' => (in_array('guru', $roles)) ? 'required|in:RPL - Produktif,Animasi - Produktif,Broadcasting - Produktif,TO - Produktif,TPFL - Produktif,Matematika,Sejarah,Pendidikan Agama,IPAS,Olahraga,Bahasa Indonesia,Bahasa Sunda,Bahasa Inggris,Bahasa Jepang' : 'nullable',
+        ], [
+            'nomor_absen.required' => 'Nomor Absen wajib diisi untuk peran Siswa atau Pengurus Kelas.',
+            'nomor_absen.integer' => 'Nomor Absen harus berupa angka.',
+
+            'name.required' => 'Nama wajib diisi.',
+
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+
+            'password.required' => 'Password wajib diisi.',
+            'password.confirmed' => 'Konfirmasi password tidak sesuai.',
+
+            'roles.required' => 'Peran wajib diisi.',
+
+            'phone_number.required' => 'Nomor Telepon wajib diisi.',
+            'phone_number.numeric' => 'Nomor Telepon harus berupa angka.',
+            'phone_number.unique' => 'Nomor Telepon sudah digunakan.',
+
+            'class_id.required' => 'ID Kelas wajib diisi untuk peran Siswa atau Pengurus Kelas.',
+            'class_id.exists' => 'ID Kelas tidak valid.',
+
+            'guru_mata_pelajaran.required' => 'Guru Mata Pelajaran wajib diisi untuk peran Guru.',
+            'guru_mata_pelajaran.in' => 'Mata Pelajaran Guru tidak valid.',
         ]);
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
 
-        // Periksa apakah user yang sedang login adalah admin
-        $loggedInUser = auth()->user();
-
-        if ($loggedInUser->hasRole('admin')) {
+        if ($isUserAdminUpdate) {
             // Update user data
             $user->update([
                 'name' => $request->name,
@@ -263,6 +395,19 @@ class UserController extends Controller
                 'guru_mata_pelajaran' => (in_array('guru', $roles)) ? $request->guru_mata_pelajaran : null,
             ]);
 
+            // Update NISN or NIS if provided
+            if ($request->has('nisn')) {
+                $user->studentIdentifier()->updateOrCreate(
+                    ['nisn' => $request->nisn],
+                    ['student_id' => $user->id]
+                );
+            } elseif ($request->has('nis')) {
+                $user->teacherIdentifier()->updateOrCreate(
+                    ['nis' => $request->nis],
+                    ['teacher_id' => $user->id]
+                );
+            }
+
             // Sync roles for the user
             $user->syncRoles($request->roles);
 
@@ -273,7 +418,7 @@ class UserController extends Controller
 
             // Return success with Api Resource
             return new UserResource(true, 'Data User Berhasil Diupdate!', $user);
-        } elseif ($loggedInUser->id === $user->id) {
+        } elseif (!$isUserAdminUpdate && ($loggedInUser->id === $user->id)) {
             // Update user data tanpa mengubah role
             $user->update([
                 'name' => $request->name,
@@ -284,6 +429,19 @@ class UserController extends Controller
                 'student_class_id' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? $request->class_id : null,
                 'guru_mata_pelajaran' => (in_array('guru', $roles)) ? $request->guru_mata_pelajaran : null,
             ]);
+
+            // Update NISN or NIS if provided
+            if ($request->has('nisn')) {
+                $user->studentIdentifier()->updateOrCreate(
+                    ['nisn' => $request->nisn],
+                    ['student_id' => $user->id]
+                );
+            } elseif ($request->has('nis')) {
+                $user->teacherIdentifier()->updateOrCreate(
+                    ['nis' => $request->nis],
+                    ['teacher_id' => $user->id]
+                );
+            }
 
             // Return success with Api Resource
             return new UserResource(true, 'Data User Berhasil Diupdate!', $user);

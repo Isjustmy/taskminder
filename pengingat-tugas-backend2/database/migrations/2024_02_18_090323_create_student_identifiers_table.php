@@ -11,10 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('verification_numbers', function (Blueprint $table) {
+        Schema::create('student_identifiers', function (Blueprint $table) {
             $table->id();
             $table->string('nisn');
-            $table->string('nis');
+            $table->foreignId('student_id')->nullable()->references('id')->on('users')->cascadeOnDelete();
+            $table->timestamps();
         });
     }
 
@@ -23,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('verification_numbers');
+        Schema::dropIfExists('student_identifiers');
     }
 };

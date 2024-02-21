@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -77,9 +78,23 @@ class User extends Authenticatable implements JWTSubject
         return $this->belongsTo(StudentClass::class, 'student_class_id');
     }
 
+    public function studentTasks()
+    {
+        return $this->hasMany(StudentTasks::class, 'student_id');
+    }
+
     public function calendars()
     {
         return $this->hasMany(Calendar::class, 'student_id');
     }
 
+    public function studentIdentifier(): HasOne
+    {
+        return $this->hasOne(StudentIdentifier::class, 'student_id');
+    }
+
+    public function teacherIdentifier(): HasOne
+    {
+        return $this->hasOne(TeacherIdentifier::class, 'teacher_id');
+    }
 }

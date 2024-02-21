@@ -85,17 +85,17 @@
       }
     },
     computed: {
-      authData() {
-        const authData = Cookies.get('authData')
-        return authData ? JSON.parse(authData) : null
+      userData() {
+        const userData = Cookies.get('userData')
+        return userData ? JSON.parse(userData) : null
       },
     },
     async created() {
       await Promise.all([this.fetchTotalUsers(), this.fetchTotalTasks()])
-      if (this.authData) {
-          this.user = this.authData.user || {}
+      if (this.userData) {
+          this.user = this.userData.user || {}
           this.role =
-            this.authData.roles && this.authData.roles.length > 0 ? this.authData.roles[0] : '' // Ensure roles is an array
+            this.userData.roles && this.userData.roles.length > 0 ? this.userData.roles[0] : '' // Ensure roles is an array
         } else {
         this.$router.push('/login')
       }

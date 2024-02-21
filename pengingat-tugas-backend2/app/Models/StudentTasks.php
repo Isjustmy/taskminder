@@ -12,14 +12,13 @@ class StudentTasks extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'student_id', 'creator_id', 'task_id', 'file_path', 'link', 'is_submitted', 'score', 'scored_at', 'submitted_at', 'feedback_content', 'updated_at'
+        'student_id', 'teacher_id', 'task_id', 'file_path', 'link', 'is_submitted', 'is_late', 'score', 'scored_at', 'submitted_at', 'feedback_content', 'updated_at'
     ];
 
     public function tasks()
     {
         return $this->belongsTo(Task::class, 'task_id');
     }
-
 
     public function students()
     {

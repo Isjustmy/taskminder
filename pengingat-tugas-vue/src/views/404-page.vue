@@ -22,17 +22,17 @@
 </template>
 
 <script>
-import { isAuthenticated } from '@/auth/auth.js'
+import { isLoggedIn } from '@/auth/auth.js'
 
 export default {
   computed: {
     // Gunakan properti ini untuk menentukan apakah user berada di Dashboard atau tidak
     isUserInDashboard() {
       // Periksa apakah pengguna sudah login
-      const isAuthenticated2 = isAuthenticated() // Implementasikan fungsi isAuthenticated sesuai dengan logika Anda
+      const isLoggedIn2 = isLoggedIn()
 
       // Jika pengguna belum login, kembalikan false
-      if (!isAuthenticated2) return false
+      if (!isLoggedIn2) return false
 
       // Ambil nama rute saat ini dari objek $route
       const currentRouteName = this.$route.name

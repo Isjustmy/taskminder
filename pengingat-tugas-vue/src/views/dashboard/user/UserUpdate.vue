@@ -1,5 +1,5 @@
 <template>
-  <div v-if="role === 'admin'">
+  <div>
     <div class="">
       <div class="flex flex-col md:flex-row">
         <router-link
@@ -23,7 +23,7 @@
             class="btn btn-neutral text-white"
             :class="{ 'btn-selected': selectedRoles.includes('guru') }"
             @click="toggleRole('guru')"
-            :disabled="isGuruRoleDisabled()"
+            :disabled="isGuruRoleDisabled() || loading"
           >
             Guru
           </button>
@@ -31,7 +31,7 @@
             class="btn btn-neutral text-white"
             :class="{ 'btn-selected': selectedRoles.includes('siswa') }"
             @click="toggleRole('siswa')"
-            :disabled="isSiswaRoleDisabled()"
+            :disabled="isSiswaRoleDisabled() || loading"
           >
             Siswa
           </button>
@@ -39,7 +39,7 @@
             class="btn btn-neutral text-white"
             :class="{ 'btn-selected': selectedRoles.includes('pengurus_kelas') }"
             @click="toggleRole('pengurus_kelas')"
-            :disabled="isPengurusKelasRoleDisabled()"
+            :disabled="isPengurusKelasRoleDisabled() || loading"
           >
             Pengurus Kelas
           </button>
@@ -47,7 +47,7 @@
             class="btn btn-neutral text-white"
             :class="{ 'btn-selected': selectedRoles.includes('admin') }"
             @click="toggleRole('admin')"
-            :disabled="isAdminRoleDisabled()"
+            :disabled="isAdminRoleDisabled() || loading"
           >
             Admin
           </button>
@@ -68,7 +68,7 @@
               type="name"
               autocomplete="name"
               required
-              placeholder="Nama"
+              :placeholder="loading ? 'Loading' : 'Nama'"
               v-model="credentials.name"
               class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
             />
@@ -84,7 +84,7 @@
               type="email"
               autocomplete="email"
               required
-              placeholder="johndoe@mail.com"
+              :placeholder="loading ? 'Loading' : 'email@email.com'"
               v-model="credentials.email"
               class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
             />
@@ -97,10 +97,10 @@
             <input
               id="phone_number"
               name="phone_number"
-              type="tel"
+              type="phone_number"
               autocomplete="phone_number"
               required
-              placeholder="0888888888888"
+              :placeholder="loading ? 'Loading' : '0888888888888'"
               v-model="credentials.phone_number"
               class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
             />
@@ -140,40 +140,8 @@
         </div>
         <div class="w-1/2 px-5">
           <div>
-            <label class="block text-sm flex" v-if="isValidRegistration() && isGuruRoleDisabled() && isAdminRoleDisabled()"
-              >NISN
-              <p class="text-red-700">*</p></label
-            >
-            <input
-              v-if="isValidRegistration() && isGuruRoleDisabled() && isAdminRoleDisabled()"
-              id="nisn"
-              name="nisn"
-              type="text"
-              required
-              v-model="credentials.nisn"
-              class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm flex" v-if="isValidRegistration() && !isGuruRoleDisabled()"
-              >NIS
-              <p class="text-red-700">*</p></label
-            >
-            <input
-              v-if="isValidRegistration() && !isGuruRoleDisabled()"
-              id="nis"
-              name="nis"
-              type="text"
-              required
-              v-model="credentials.nis"
-              class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
-            />
-          </div>
-
-          <div>
             <label
-              class="block text-sm flex mt-4"
+              class="block text-sm flex"
               v-if="isValidRegistration() && isGuruRoleDisabled() && isAdminRoleDisabled()"
               >Nomor Absen
               <p class="text-red-700">*</p></label
@@ -191,7 +159,7 @@
 
           <div>
             <label
-              class="block text-sm flex mt-4"
+              class="block text-sm flex"
               v-if="isValidRegistration() && isGuruRoleDisabled() && isAdminRoleDisabled()"
             >
               Kelas
@@ -216,7 +184,7 @@
           </div>
 
           <div v-if="isValidRegistration() && !isGuruRoleDisabled() && isAdminRoleDisabled()">
-            <label class="block text-sm flex mt-4"
+            <label class="block text-sm flex"
               >Guru Mata Pelajaran
               <p class="text-red-700">*</p></label
             >
@@ -235,18 +203,18 @@
             </select>
           </div>
           <button
-            v-if="!loading"
-            class="block w-full px-4 py-2 mt-8 text-sm font-medium leading-5 text-center text-white transition-colors duration-150 bg-blue-600 border border-transparent rounded-lg active:bg-blue-600 hover:bg-blue-700 focus:outline-none focus:shadow-outline-blue"
-            @click="register"
-            :disabled="!isValidRegistration"
+            v-if="!loadingButton"
+            class="btn btn-primary block w-full px-4 py-2 mt-8 text-sm font-medium leading-5 text-center text-white transition-colors duration-150"
+            @click="updateUser"
+            :disabled="!isValidRegistration || loadingButtonData"
           >
-            Tambah Akun
+            Update User
           </button>
           <button
-            v-if="loading"
+            v-if="loadingButton"
             type="button"
-            disabled
-            class="block w-full px-4 py-2 mt-8 text-sm font-medium leading-5 text-center text-white transition-colors duration-150 bg-blue-600 border border-transparent rounded-lg active:bg-blue-600 hover:bg-blue-700 focus:outline-none focus:shadow-outline-blue"
+            aria-disabled="true"
+            class="btn btn-primary block w-full px-4 py-2 mt-8 text-sm font-medium leading-5 text-center text-white transition-colors duration-150"
           >
             <svg
               aria-hidden="true"
@@ -286,9 +254,7 @@ export default {
         email: '',
         password: '',
         password_confirmation: '',
-        phone_number: '',
-        nisn: '',
-        nis: ''
+        phone_number: ''
       },
       role: '',
       selectedRoles: [],
@@ -297,16 +263,83 @@ export default {
       nomor_absen: '',
       class_id: '',
       guru_mata_pelajaran: '',
-      loading: false
+      loading: false,
+      loadingButton: false,
+      loadingButtonData: false
     }
   },
   computed: {
-    userData() {
-      const userData = Cookies.get('userData')
-      return userData ? JSON.parse(userData) : null
+    userUpdateId() {
+      return this.$route.params.userId // Ambil ID user dari params route
     }
   },
   methods: {
+    async fetchUserData() {
+      this.loading = true
+      this.loadingButtonData = true
+      try {
+        const response1 = await Api.get(`/api/user/${this.userUpdateId}`)
+        const response = response1.data
+        // Set nilai input credentials
+        this.credentials.name = response.data.name
+        this.credentials.email = response.data.email
+        this.credentials.phone_number = response.data.phone_number
+
+        // Set nilai input selain credentials
+        this.nomor_absen = response.data.nomor_absen
+
+        if (response.data.roles && Array.isArray(response.data.roles)) {
+          // Pengecekan apakah response.data.roles tidak undefined dan merupakan array
+          response.data.roles.forEach((role) => {
+            this.selectedRoles.push(role.name)
+          })
+        }
+        if (this.selectedRoles.includes('siswa') && response.data.student_class) {
+          this.class_id = response.data.student_class.id
+        }
+        if (this.selectedRoles.includes('guru')) {
+          this.guru_mata_pelajaran = response.data.guru_mata_pelajaran
+        }
+      } catch (error) {
+        console.error('Gagal mengambil data user:', error)
+      } finally {
+        this.loading = false
+        this.loadingButtonData = false
+      }
+    },
+
+    async updateUser() {
+      this.loading = true
+      this.loadingButton = true
+      const requestData = {
+        nomor_absen: this.nomor_absen,
+        class_id: this.class_id,
+        name: this.credentials.name,
+        roles: this.selectedRoles,
+        password: this.credentials.password,
+        password_confirmation: this.credentials.password_confirmation,
+        phone_number: this.credentials.phone_number,
+        email: this.credentials.email,
+        guru_mata_pelajaran: this.guru_mata_pelajaran
+      }
+      try {
+        const response = await Api.put(`/api/user/${this.userUpdateId}/update`, requestData)
+        const toast = useToast()
+        toast.success('Data pengguna berhasil diperbarui!', {
+          timeout: 2000,
+          hideProgressBar: false
+        })
+        // Redirect ke halaman user setelah berhasil mengupdate
+        this.$router.push({ name: 'user' })
+      } catch (error) {
+        console.error('Gagal memperbarui data pengguna:', error)
+        // Tambahkan penanganan kesalahan di sini
+      } finally {
+        this.loading = false
+        this.loadingButton = false
+      }
+    },
+
     async toggleRole(role) {
       if (role === 'siswa' && this.selectedRoles.includes('guru')) {
         return
@@ -372,81 +405,18 @@ export default {
 
     isValidRegistration() {
       return this.selectedRoles.length > 0
-    },
-
-    async register() {
-      this.loading = true
-
-      const requestData = {
-        nomor_absen: this.nomor_absen,
-        class_id: this.class_id,
-        name: this.credentials.name,
-        roles: this.selectedRoles,
-        password: this.credentials.password,
-        password_confirmation: this.credentials.password_confirmation,
-        phone_number: this.credentials.phone_number,
-        email: this.credentials.email,
-        guru_mata_pelajaran: this.guru_mata_pelajaran,
-        nisn: this.credentials.nisn,
-        nis: this.credentials.nis,
-      }
-
-      try {
-        const response = await Api.post('/api/register', requestData)
-
-        const toast = useToast()
-        toast.success('Akun Berhasil Dibuat!', {
-          timeout: 2000,
-          hideProgressBar: false
-        })
-
-        this.$router.push({ name: 'user' })
-      } catch (error) {
-        console.error('Gagal Menambahkan User Baru:', error)
-
-        if (error.response && error.response.data) {
-          const errorData = error.response.data
-
-          // Assuming Laravel validation errors are returned as an object
-          if (typeof errorData === 'object') {
-            const toast = useToast()
-            for (const key in errorData) {
-              if (Object.hasOwnProperty.call(errorData, key)) {
-                const errorMessage = errorData[key][0]
-                toast.error(errorMessage, {
-                  timeout: 3500,
-                  hideProgressBar: true
-                })
-              }
-            }
-          } else {
-            // Handle other types of errors
-            const toast = useToast()
-            toast.error('Gagal Membuat User.', {
-              timeout: 3500,
-              hideProgressBar: true
-            })
-          }
-        } else {
-          // Handle other types of errors
-          const toast = useToast()
-          toast.error('Gagal Membuat User.', {
-            timeout: 3500,
-            hideProgressBar: true
-          })
-        }
-      } finally {
-        this.loading = false
-      }
     }
   },
   created() {
-    if (this.userData) {
-      this.user = this.userData.user || {}
-      this.role =
-        this.userData.roles && this.userData.roles.length > 0 ? this.userData.roles[0] : ''
-    }
+    this.loading = true
+    this.loadingButtonData = true
     this.fetchClassAndSubjects()
+      .then(() => {
+        this.fetchUserData()
+      })
+      .catch((error) => {
+        console.error('Failed to fetch class and subject options:', error)
+      })
   }
 }
 </script>

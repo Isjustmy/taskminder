@@ -61,6 +61,24 @@
 
             <div>
               <label class="block text-sm flex" v-if="isValidRegistration() && isGuruRoleDisabled()"
+                >NISN
+                <p class="text-red-700">*</p></label
+              >
+              <input
+                v-if="isValidRegistration() && isGuruRoleDisabled()"
+                id="nisn"
+                name="nisn"
+                type="text"
+                required
+                v-model="credentials.nisn"
+                class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
+              />
+            </div>
+
+            <div>
+              <label
+                class="block text-sm flex mt-4"
+                v-if="isValidRegistration() && isGuruRoleDisabled()"
                 >Nomor Absen
                 <p class="text-red-700">*</p></label
               >
@@ -101,8 +119,26 @@
               </select>
             </div>
 
+            <div>
+              <label
+                class="block text-sm flex"
+                v-if="isValidRegistration() && !isGuruRoleDisabled()"
+                >NIS
+                <p class="text-red-700">*</p></label
+              >
+              <input
+                v-if="isValidRegistration() && !isGuruRoleDisabled()"
+                id="nis"
+                name="nis"
+                type="text"
+                required
+                v-model="credentials.nis"
+                class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
+              />
+            </div>
+
             <div v-if="isValidRegistration() && !isGuruRoleDisabled()">
-              <label class="block text-sm flex"
+              <label class="block text-sm flex mt-4"
                 >Guru Mata Pelajaran
                 <p class="text-red-700">*</p></label
               >
@@ -262,7 +298,9 @@ export default {
         email: '',
         password: '',
         password_confirmation: '',
-        phone_number: ''
+        phone_number: '',
+        nisn: '',
+        nis: ''
       },
       selectedRoles: [],
       classOptions: [],
@@ -321,7 +359,7 @@ export default {
         }))
         this.subjectOptions = response.data.data.subjects.map((subject) => String(subject))
       } catch (error) {
-        console.error('Failed to fetch class and subject options:', error)
+        console.error('Failed to fetch class and subject options')
       }
     },
 
@@ -341,7 +379,9 @@ export default {
         password_confirmation: this.credentials.password_confirmation,
         phone_number: this.credentials.phone_number,
         email: this.credentials.email,
-        guru_mata_pelajaran: this.guru_mata_pelajaran
+        guru_mata_pelajaran: this.guru_mata_pelajaran,
+        nisn: this.credentials.nisn,
+        nis: this.credentials.nis
       }
 
       try {
@@ -355,7 +395,7 @@ export default {
 
         this.$router.push('/login')
       } catch (error) {
-        console.error('Registration failed:', error)
+        console.error('Registration failed')
 
         if (error.response && error.response.data) {
           const errorData = error.response.data
@@ -363,13 +403,23 @@ export default {
           // Assuming Laravel validation errors are returned as an object
           if (typeof errorData === 'object') {
             const toast = useToast()
-            for (const key in errorData) {
-              if (Object.hasOwnProperty.call(errorData, key)) {
-                const errorMessage = errorData[key][0]
-                toast.error(errorMessage, {
-                  timeout: 3500,
-                  hideProgressBar: true
-                })
+
+            // Menangani tipe error 1
+            if (errorData.error) {
+              toast.error(errorData.error, {
+                timeout: 3500,
+                hideProgressBar: true
+              })
+            } else {
+              // Menangani tipe error 2 dan 3
+              for (const key in errorData) {
+                if (Object.hasOwnProperty.call(errorData, key)) {
+                  const errorMessage = errorData[key][0]
+                  toast.error(errorMessage, {
+                    timeout: 3500,
+                    hideProgressBar: true
+                  })
+                }
               }
             }
           } else {

@@ -9,6 +9,8 @@ import { fab } from '@fortawesome/free-brands-svg-icons';
 import { far } from '@fortawesome/free-regular-svg-icons';
 import Toast from 'vue-toastification'
 import "vue-toastification/dist/index.css";
+import VueDatePicker from '@vuepic/vue-datepicker';
+import '@vuepic/vue-datepicker/dist/main.css'
 
 library.add(fas, far, fab)
 
@@ -20,6 +22,7 @@ const app = createApp(App)
 app.use(Toast)
 
 app.component("font-awesome-icon", FontAwesomeIcon)
+app.component('VueDatePicker', VueDatePicker)
 
 app.use(createPinia())
 app.use(router)

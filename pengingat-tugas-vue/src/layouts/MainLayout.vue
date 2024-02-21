@@ -41,11 +41,7 @@
               <li>
                 <a class="justify-between">
                   Profile
-                  <span class="badge">New</span>
                 </a>
-              </li>
-              <li>
-                <a>Settings</a>
               </li>
               <li>
                 <a href="#logout-modal" @click.prevent="openLogoutModal()">Logout</a>
@@ -158,9 +154,9 @@
             class="flex w-full px-4 py-2 text-md font-bold text-left leading-5 transition duration-150 ease-in-out border border-transparent rounded-md focus:outline-none focus:border-blue-300 focus:shadow-outline-blue"
             :class="{
               'text-white hover:bg-slate-800 hover:text-white active:bg-slate-800 active:text-white':
-                $route.name !== 'task',
+                !$route.name.startsWith('task'),
               'text-black bg-gray-100 hover:bg-gray-300 hover:text-black active:bg-gray-400 active:text-black':
-                $route.name === 'task'
+                $route.name.startsWith('task')
             }"
           >
             <svg
@@ -211,12 +207,12 @@ export default {
     }
   },
   computed: {
-    authData() {
-      const authData = Cookies.get('authData')
-      return authData ? JSON.parse(authData) : null
+    userData() {
+      const userData = Cookies.get('userData')
+      return userData ? JSON.parse(userData) : null
     },
     userPermissions() {
-      return this.authData ? this.authData.permissions || {} : {}
+      return this.userData ? this.userData.permissions || {} : {}
     }
   },
   mounted() {
@@ -238,18 +234,21 @@ export default {
     },
     logout() {
       this.loading = true
-      
+
       Api.post('/api/logout')
         .then(() => {
-          Cookies.remove('authData')
+          sessionStorage.removeItem('tokenJWT')
+          sessionStorage.removeItem('isLoggedIn')
+          Cookies.remove('userData')
           const toast = useToast()
           toast.success('Logout Berhasil', {
+            position: 'top-center',
             timeout: 1500
           })
 
           setTimeout(() => {
             this.loading = false
-            this.$router.push('/')
+            this.$router.push({ name: 'landing' })
           }, 1000)
 
           // Close the modal after successful logout
@@ -260,6 +259,7 @@ export default {
           console.error('Error during logout:', error)
           const toast = useToast()
           toast.error('Logout Gagal', {
+            position: 'top-center',
             timeout: 1000
           })
 
@@ -268,10 +268,10 @@ export default {
         })
     },
     fetchDashboardData() {
-      if (this.authData) {
-        this.user = this.authData.user || {}
+      if (this.userData) {
+        this.user = this.userData.user || {}
         this.role =
-          this.authData.roles && this.authData.roles.length > 0 ? this.authData.roles[0] : '' // Ensure roles is an array
+          this.userData.roles && this.userData.roles.length > 0 ? this.userData.roles[0] : '' // Ensure roles is an array
       } else {
         this.fetchUserData()
       }
