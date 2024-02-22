@@ -11,7 +11,7 @@ class TeacherIdentifier extends Model
     use HasFactory;
 
     protected $fillable = [
-        'nis', 'teacher_id'
+        'nip', 'teacher_id'
     ];
 
     public function user(): BelongsTo

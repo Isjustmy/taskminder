@@ -25,14 +25,14 @@ class IdentifierSeeder extends Seeder
             StudentIdentifier::create($identifier);
         }
 
-        // Data NIS untuk guru
+        // Data nip untuk guru
         $teacherIdentifiers = [
-            ['nis' => '1234567893'],
-            ['nis' => '1234567894'],
-            // Tambahkan data NIS guru lainnya di sini
+            ['nip' => '1234567893'],
+            ['nip' => '1234567894'],
+            // Tambahkan data nip guru lainnya di sini
         ];
 
-        // Masukkan data NIS guru ke dalam tabel teacher_identifiers
+        // Masukkan data nip guru ke dalam tabel teacher_identifiers
         foreach ($teacherIdentifiers as $identifier) {
             TeacherIdentifier::create($identifier);
         }

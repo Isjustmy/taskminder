@@ -10,7 +10,7 @@
           Kembali
         </router-link>
         <h1 class="mb-4 text-3xl font-bold text-center absolute ml-[150px] mt-4 text-gray-700">
-          Buat User Baru
+          Update User
         </h1>
       </div>
       <div class="mb-4 mt-20 ml-6">
@@ -143,6 +143,39 @@
             <label
               class="block text-sm flex"
               v-if="isValidRegistration() && isGuruRoleDisabled() && isAdminRoleDisabled()"
+              >NISN
+              <p class="text-red-700">*</p></label
+            >
+            <input
+              v-if="isValidRegistration() && isGuruRoleDisabled() && isAdminRoleDisabled()"
+              id="nisn"
+              name="nisn"
+              type="text"
+              required
+              v-model="credentials.nisn"
+              class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm flex" v-if="isValidRegistration() && !isGuruRoleDisabled()"
+              >NIP
+              <p class="text-red-700">*</p></label
+            >
+            <input
+              v-if="isValidRegistration() && !isGuruRoleDisabled()"
+              id="nip"
+              name="nip"
+              type="text"
+              required
+              v-model="credentials.nip"
+              class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
+            />
+          </div>
+          <div>
+            <label
+              class="block text-sm flex"
+              v-if="isValidRegistration() && isGuruRoleDisabled() && isAdminRoleDisabled()"
               >Nomor Absen
               <p class="text-red-700">*</p></label
             >
@@ -254,7 +287,9 @@ export default {
         email: '',
         password: '',
         password_confirmation: '',
-        phone_number: ''
+        phone_number: '',
+        nisn: '',
+        nip: ''
       },
       role: '',
       selectedRoles: [],
@@ -292,6 +327,13 @@ export default {
           // Pengecekan apakah response.data.roles tidak undefined dan merupakan array
           response.data.roles.forEach((role) => {
             this.selectedRoles.push(role.name)
+            if (role.name === 'guru') {
+              // Jika pengguna adalah guru, set nilai NIP
+              this.credentials.nip = response.data.teacher_identifier.nip
+            } else if (role.name === 'siswa') {
+              // Jika pengguna adalah siswa, set nilai NISN
+              this.credentials.nisn = response.data.student_identifier.nisn
+            }
           })
         }
         if (this.selectedRoles.includes('siswa') && response.data.student_class) {
@@ -320,7 +362,9 @@ export default {
         password_confirmation: this.credentials.password_confirmation,
         phone_number: this.credentials.phone_number,
         email: this.credentials.email,
-        guru_mata_pelajaran: this.guru_mata_pelajaran
+        guru_mata_pelajaran: this.guru_mata_pelajaran,
+        nisn: this.credentials.nisn,
+        nip: this.credentials.nip
       }
       try {
         const response = await Api.put(`/api/user/${this.userUpdateId}/update`, requestData)

@@ -6,6 +6,7 @@ import Login from '@/views/LoginPage.vue'
 import LandingPage from '@/views/LandingPage.vue'
 import TaskHome from '@/views/dashboard/task/TaskHome.vue'
 import TaskCreate from '@/views/dashboard/task/TaskCreate.vue'
+import TaskUpdate from '@/views/dashboard/task/TaskUpdate.vue'
 import TaskDetail from '@/views/dashboard/task/TaskDetail.vue'
 import { isLoggedIn } from '@/auth/auth.js'
 import Register from '@/views/RegisterPage.vue'
@@ -48,7 +49,8 @@ const routes = [
       // grup route task
       { path: 'task', name: 'task', component: TaskHome, meta: { requiresAuth: true } },
       { path: 'task/detail/:taskId', name: 'task_detail', component: TaskDetail, meta: { requiresAuth: true } },
-      { path: 'task/create', name: 'task_create', component: TaskCreate, meta: { requiresAuth: true } }
+      { path: 'task/create', name: 'task_create', component: TaskCreate, meta: { requiresAuth: true } },
+      { path: 'task/update/:taskId', name: 'task_update', component: TaskUpdate, meta: { requiresAuth: true } }
     ]
   },
   { path: '/register', name: 'register', component: Register },

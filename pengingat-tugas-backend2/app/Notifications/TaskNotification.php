@@ -33,6 +33,7 @@ class TaskNotification extends Notification
     public function toArray($notifiable)
     {
         return [
+            'task_id' => $this->task->id,
             'task_title' => $this->task->title,
             'teacher_name' => $this->teacherName,
             'deadline' => $this->task->deadline,

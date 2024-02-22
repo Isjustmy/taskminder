@@ -123,16 +123,16 @@
               <label
                 class="block text-sm flex"
                 v-if="isValidRegistration() && !isGuruRoleDisabled()"
-                >NIS
+                >NIP
                 <p class="text-red-700">*</p></label
               >
               <input
                 v-if="isValidRegistration() && !isGuruRoleDisabled()"
-                id="nis"
-                name="nis"
+                id="nip"
+                name="nip"
                 type="text"
                 required
-                v-model="credentials.nis"
+                v-model="credentials.nip"
                 class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
               />
             </div>
@@ -300,7 +300,7 @@ export default {
         password_confirmation: '',
         phone_number: '',
         nisn: '',
-        nis: ''
+        nip: ''
       },
       selectedRoles: [],
       classOptions: [],
@@ -381,7 +381,7 @@ export default {
         email: this.credentials.email,
         guru_mata_pelajaran: this.guru_mata_pelajaran,
         nisn: this.credentials.nisn,
-        nis: this.credentials.nis
+        nip: this.credentials.nip
       }
 
       try {

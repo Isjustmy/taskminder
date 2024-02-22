@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('teacher_identifiers', function (Blueprint $table) {
             $table->id();
-            $table->string('nis');
+            $table->string('nip');
             $table->foreignId('teacher_id')->nullable()->references('id')->on('users')->cascadeOnDelete();
             $table->timestamps();
         });

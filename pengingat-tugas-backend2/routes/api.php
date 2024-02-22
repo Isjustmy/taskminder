@@ -9,6 +9,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\UserController;
+use App\Http\Middleware\CheckStudentOrClassManagerRole;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,8 +32,6 @@ Route::get('/getData', [App\Http\Controllers\UserController::class, 'getClassAnd
 // Apply auth:api middleware to all routes
 Route::middleware('auth:api')->group(function () {
 
-    Route::get('/dashboard', [DashboardController::class, 'index']);
-
     Route::post('/logout', [App\Http\Controllers\Auth\LoginController::class, 'logout']);
 
     Route::prefix('user')->group(function () {
@@ -45,12 +44,12 @@ Route::middleware('auth:api')->group(function () {
     });
 
     Route::prefix('tasks')->group(function () {
+        Route::get('/murid', [TaskController::class, 'tugasSiswa'])->middleware([CheckStudentOrClassManagerRole::class]);
+        Route::get('/murid/{id}', [TaskController::class, 'tugasSiswaDenganId'])->middleware([CheckStudentOrClassManagerRole::class]);
 
         // grup pengambilan data tugas dengan referensi function berbeda
         Route::get('/all', [TaskController::class, 'all'])->middleware(['permission:tasks.view', 'role:admin']);
         Route::get('/{id}', [TaskController::class, 'show'])->middleware('permission:tasks.view', 'role:admin');
-        Route::get('/student', [TaskController::class, 'getStudentTasks'])->middleware('permission:tasks.view');
-        Route::get('/student/{id}', [TaskController::class, 'getStudentTasksByTaskId'])->middleware('permission:tasks.view');
         Route::get('/list/teacher', [TaskController::class, 'getTeacherTasks'])->middleware('permission:tasks.view');
         Route::get('/list/teacher/{id}', [TaskController::class, 'getTeacherTasksWithId'])->middleware('permission:tasks.view');
         Route::get('/list/summary', [TaskController::class, 'taskSummary'])->middleware('permission:tasks.view', 'role:guru');

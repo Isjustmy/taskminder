@@ -16,6 +16,7 @@ use Carbon\Carbon;
 use App\Models\User;
 use App\Notifications\TaskNotification;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 
@@ -211,8 +212,7 @@ class TaskController extends Controller
         }
     }
 
-
-    public function getStudentTasks()
+    public function tugasSiswa()
     {
         $studentId = Auth::user()->id;
         $tasks = Task::whereHas('studentTasks', function ($query) use ($studentId) {
@@ -264,8 +264,7 @@ class TaskController extends Controller
         }
     }
 
-
-    public function getStudentTasksByTaskId($taskId)
+    public function tugasSiswaDenganId($taskId)
     {
         $studentId = Auth::user()->id;
         $task = Task::findOrFail($taskId);
@@ -647,6 +646,8 @@ class TaskController extends Controller
                 // Hapus file dari sistem penyimpanan berdasarkan nama file
                 Storage::disk('public')->delete('files_from_teacher/' . $fileName);
             }
+
+            DB::table('notifications')->where('data->task_id', $task->id)->delete();
 
             // Menghapus tugas berdasarkan ID yang diberikan
             $task->delete();

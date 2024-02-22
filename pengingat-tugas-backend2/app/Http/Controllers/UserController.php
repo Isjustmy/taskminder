@@ -77,7 +77,7 @@ class UserController extends Controller
 
 
     /**
-     * Display the spesified user
+     * Display the specified user
      * 
      * @param int $id
      * 
@@ -85,17 +85,30 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        // get user with roles and studentClass relations
-        $user = User::with(['roles', 'studentClass:id,class'])->whereId($id)->first();
+        // Get user with roles and appropriate identifier relation
+        $user = User::with(['roles', 'teacherIdentifier', 'studentIdentifier'])->whereId($id)->first();
 
         if ($user) {
-            // return success with Api Resource
-            return new UserResource(true, 'Detail Data User', $user);
+            // Initialize an array to hold the user details
+            $userData = $user->toArray();
+
+            // Check if the user is a teacher
+            if ($user->hasRole('guru')) {
+                // If the user is a teacher, remove the student identifier and identifier from the response
+                unset($userData['student_identifier'], $userData['identifier']);
+            } elseif ($user->hasRole('siswa')) {
+                // If the user is a student, remove the teacher identifier and identifier from the response
+                unset($userData['teacher_identifier'], $userData['identifier']);
+            }
+
+            // Return success with Api Resource
+            return new UserResource(true, 'Detail Data User', $userData);
         }
 
-        // return failed with Api Resource
+        // Return failed with Api Resource
         return new UserResource(false, 'Detail Data User Tidak Ditemukan!', null);
     }
+
 
     /**
      * Display the details of the currently authenticated user.
@@ -109,11 +122,23 @@ class UserController extends Controller
 
         // If the user is authenticated, return the details
         if ($currentUser) {
-            // Get user details with roles and studentClass relations
-            $userDetails = User::with(['roles', 'studentClass:id,class'])->find($currentUser->id);
+            // Get user details with roles and appropriate identifier relation
+            $userDetails = User::with(['roles', 'teacherIdentifier', 'studentIdentifier'])->find($currentUser->id);
+
+            // Initialize an array to hold the user details
+            $userData = $userDetails->toArray();
+
+            // Check if the user is a teacher
+            if ($userDetails->hasRole('guru')) {
+                // If the user is a teacher, remove the student identifier and identifier from the response
+                unset($userData['student_identifier'], $userData['identifier']);
+            } elseif ($userDetails->hasRole('siswa')) {
+                // If the user is a student, remove the teacher identifier and identifier from the response
+                unset($userData['teacher_identifier'], $userData['identifier']);
+            }
 
             // Return success with Api Resource
-            return new UserResource(true, 'Detail Data User', $userDetails);
+            return new UserResource(true, 'Detail Data User', $userData);
         }
 
         // Return failed with Api Resource
@@ -149,7 +174,7 @@ class UserController extends Controller
             'phone_number' => 'required|numeric|unique:users,phone_number,',
             'class_id' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|exists:student_classes,id' : 'nullable',
             'nisn' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required' : 'nullable',
-            'nis' => (in_array('guru', $roles)) ? 'required' : 'nullable',
+            'nip' => (in_array('guru', $roles)) ? 'required' : 'nullable',
             'guru_mata_pelajaran' => (in_array('guru', $roles)) ? 'required|in:RPL - Produktif,Animasi - Produktif,Broadcasting - Produktif,TO - Produktif,TPFL - Produktif,Matematika,Sejarah,Pendidikan Agama,IPAS,Olahraga,Bahasa Indonesia,Bahasa Sunda,Bahasa Inggris,Bahasa Jepang' : 'nullable',
         ], [
             'nomor_absen.required' => 'Nomor Absen wajib diisi untuk peran Siswa atau Pengurus Kelas.',
@@ -192,7 +217,7 @@ class UserController extends Controller
         }
 
         if (!$userAuth && !$isUserAdmin) {
-            // Jika pengguna tidak login atau tidak memiliki role admin, lakukan validasi NISN atau NIS
+            // Jika pengguna tidak login atau tidak memiliki role admin, lakukan validasi NISN atau nip
             if (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) {
                 $studentIdentifier = StudentIdentifier::where('nisn', $request->nisn)->first();
                 if (!$studentIdentifier) {
@@ -202,12 +227,12 @@ class UserController extends Controller
                     return response()->json(['error' => 'Akun dengan NISN yang dimasukkan sudah ada sebelumnya.'], 422);
                 }
             } elseif (in_array('guru', $roles)) {
-                $teacherIdentifier = TeacherIdentifier::where('nis', $request->nis)->first();
+                $teacherIdentifier = TeacherIdentifier::where('nip', $request->nip)->first();
                 if (!$teacherIdentifier) {
-                    return response()->json(['error' => 'NIS tidak terdaftar. Anda tidak diizinkan mendaftar akun.'], 422);
+                    return response()->json(['error' => 'NIP tidak terdaftar. Anda tidak diizinkan mendaftar akun.'], 422);
                 }
                 if ($teacherIdentifier->teacher_id) {
-                    return response()->json(['error' => 'Akun dengan NIS yang dimasukkan sudah ada sebelumnya.'], 422);
+                    return response()->json(['error' => 'Akun dengan NIP yang dimasukkan sudah ada sebelumnya.'], 422);
                 }
             }
         }
@@ -227,7 +252,7 @@ class UserController extends Controller
         $user->assignRole($request->roles);
 
         if (!$userAuth && !$isUserAdmin) {
-            // Update NISN and NIS with user_id based on roles
+            // Update NISN and nip with user_id based on roles
             if (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) {
                 $studentIdentifierUpdate = StudentIdentifier::where('nisn', $request->nisn)->first();
                 if ($studentIdentifierUpdate) {
@@ -237,16 +262,16 @@ class UserController extends Controller
                     return response()->json(['error' => 'Data NISN tidak ditemukan.'], 422);
                 }
             } elseif (in_array('guru', $roles)) {
-                $teacherIdentifierUpdate = TeacherIdentifier::where('nis', $request->nis)->first();
+                $teacherIdentifierUpdate = TeacherIdentifier::where('nip', $request->nip)->first();
                 if ($teacherIdentifierUpdate) {
                     $teacherIdentifierUpdate->update(['teacher_id' => $user->id]);
                 } else {
                     // Handle if teacher identifier not found
-                    return response()->json(['error' => 'Data NIS tidak ditemukan.'], 422);
+                    return response()->json(['error' => 'Data NIP tidak ditemukan.'], 422);
                 }
             }
         } else {
-            // Admin sedang membuat akun, tambahkan NISN atau NIS baru jika tidak ditemukan di database
+            // Admin sedang membuat akun, tambahkan NISN atau nip baru jika tidak ditemukan di database
             if (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) {
                 $studentIdentifierAdmin = StudentIdentifier::where('nisn', $request->nisn)->first();
                 if (!$studentIdentifierAdmin) {
@@ -259,11 +284,11 @@ class UserController extends Controller
                     $studentIdentifierAdmin->update(['student_id' => $user->id]);
                 }
             } elseif (in_array('guru', $roles)) {
-                $teacherIdentifierAdmin = TeacherIdentifier::where('nis', $request->nis)->first();
+                $teacherIdentifierAdmin = TeacherIdentifier::where('nip', $request->nip)->first();
                 if (!$teacherIdentifierAdmin) {
-                    // NIS tidak ditemukan, tambahkan NIS baru ke database
+                    // nip tidak ditemukan, tambahkan nip baru ke database
                     $teacherIdentifierAdmin = TeacherIdentifier::create([
-                        'nis' => $request->nis,
+                        'nip' => $request->nip,
                         'teacher_id' => $user->id,
                     ]);
                 } else {
@@ -395,15 +420,15 @@ class UserController extends Controller
                 'guru_mata_pelajaran' => (in_array('guru', $roles)) ? $request->guru_mata_pelajaran : null,
             ]);
 
-            // Update NISN or NIS if provided
+            // Update NISN or nip if provided
             if ($request->has('nisn')) {
                 $user->studentIdentifier()->updateOrCreate(
                     ['nisn' => $request->nisn],
                     ['student_id' => $user->id]
                 );
-            } elseif ($request->has('nis')) {
+            } elseif ($request->has('nip')) {
                 $user->teacherIdentifier()->updateOrCreate(
-                    ['nis' => $request->nis],
+                    ['nip' => $request->nip],
                     ['teacher_id' => $user->id]
                 );
             }
@@ -430,15 +455,15 @@ class UserController extends Controller
                 'guru_mata_pelajaran' => (in_array('guru', $roles)) ? $request->guru_mata_pelajaran : null,
             ]);
 
-            // Update NISN or NIS if provided
+            // Update NISN or nip if provided
             if ($request->has('nisn')) {
                 $user->studentIdentifier()->updateOrCreate(
                     ['nisn' => $request->nisn],
                     ['student_id' => $user->id]
                 );
-            } elseif ($request->has('nis')) {
+            } elseif ($request->has('nip')) {
                 $user->teacherIdentifier()->updateOrCreate(
-                    ['nis' => $request->nis],
+                    ['nip' => $request->nip],
                     ['teacher_id' => $user->id]
                 );
             }
