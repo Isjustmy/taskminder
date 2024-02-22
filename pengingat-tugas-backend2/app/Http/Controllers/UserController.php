@@ -165,6 +165,11 @@ class UserController extends Controller
 
         $roles = $request->input('roles', []);
 
+        // Check if pengurus_kelas role is selected but siswa role is not selected, then automatically add siswa role
+        if (in_array('pengurus_kelas', $roles) && !in_array('siswa', $roles)) {
+            $roles[] = 'siswa';
+        }
+
         $validator = Validator::make($request->all(), [
             'nomor_absen' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|unique:users,nomor_absen,NULL,id,student_class_id,' . $request->class_id : 'nullable',
             'name' => 'required',
@@ -369,6 +374,11 @@ class UserController extends Controller
 
         $user = User::findOrFail($id);
         $roles = $request->input('roles', []);
+
+        // Check if pengurus_kelas role is selected but siswa role is not selected, then automatically add siswa role
+        if (in_array('pengurus_kelas', $roles) && !in_array('siswa', $roles)) {
+            $roles[] = 'siswa';
+        }
 
         $validator = Validator::make($request->all(), [
             'nomor_absen' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|integer' : 'nullable',
