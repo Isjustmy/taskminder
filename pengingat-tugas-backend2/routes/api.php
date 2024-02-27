@@ -9,7 +9,10 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\UserController;
+use App\Http\Middleware\CheckAdminRole;
+use App\Http\Middleware\CheckClassManagerRole;
 use App\Http\Middleware\CheckStudentOrClassManagerRole;
+use App\Http\Middleware\CheckTeacherRole;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,8 +32,16 @@ Route::post('/register', [App\Http\Controllers\UserController::class, 'store']);
 
 Route::get('/getData', [App\Http\Controllers\UserController::class, 'getClassAndSubjects']);
 
+Route::post('password/email', [UserController::class, 'sendResetLink'])->name('password.email');
+
+Route::post('password/reset', [UserController::class, 'resetPassword'])->name('password.reset');
+
 // Apply auth:api middleware to all routes
 Route::middleware('auth:api')->group(function () {
+
+    Route::get('/getTeacherData',[UserController::class, 'getTeacherData']);
+
+    Route::get('/tesRole', [TaskController::class, 'tesGetRole']);
 
     Route::post('/logout', [App\Http\Controllers\Auth\LoginController::class, 'logout']);
 
@@ -47,9 +58,12 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/murid', [TaskController::class, 'tugasSiswa'])->middleware([CheckStudentOrClassManagerRole::class]);
         Route::get('/murid/{id}', [TaskController::class, 'tugasSiswaDenganId'])->middleware([CheckStudentOrClassManagerRole::class]);
 
+        Route::get('/class', [TaskController::class, 'tugasKelasKhusus'])->middleware([CheckClassManagerRole::class]);
+        Route::post('/class/id', [TaskController::class, 'tugasPerKelas'])->middleware([CheckAdminRole::class], [CheckTeacherRole::class]);
+
         // grup pengambilan data tugas dengan referensi function berbeda
         Route::get('/all', [TaskController::class, 'all'])->middleware(['permission:tasks.view', 'role:admin']);
-        Route::get('/{id}', [TaskController::class, 'show'])->middleware('permission:tasks.view', 'role:admin');
+        Route::get('/{id}', [TaskController::class, 'show'])->middleware(['permission:tasks.view', 'role:admin']);
         Route::get('/list/teacher', [TaskController::class, 'getTeacherTasks'])->middleware('permission:tasks.view');
         Route::get('/list/teacher/{id}', [TaskController::class, 'getTeacherTasksWithId'])->middleware('permission:tasks.view');
         Route::get('/list/summary', [TaskController::class, 'taskSummary'])->middleware('permission:tasks.view', 'role:guru');
@@ -62,7 +76,7 @@ Route::middleware('auth:api')->group(function () {
         Route::put('/{id}/grade', [TaskController::class, 'gradeTaskByTeacher'])->middleware('permission:grade_task');
         Route::put('/{id}/update', [TaskController::class, 'update'])->middleware('permission:tasks.edit');
         Route::delete('/deleteTask/{id}', [TaskController::class, 'deleteTaskFromTeacher'])->middleware('permission:tasks.delete');
-        Route::delete('/deleteStudentTask/{id}', [TaskController::class, 'deleteTaskFromTeacher'])->middleware('permission:tasks.delete');
+        Route::put('/deleteStudentTask/{id}', [TaskController::class, 'deleteTaskFromTeacher'])->middleware('permission:tasks.delete');
 
         //new: route get student task file
         Route::get('/{id}/file', [TaskController::class, 'getStudentTaskFile'])->middleware('permission:tasks.view');

@@ -72,12 +72,12 @@
             </label>
             <!-- Ganti input type date dengan VueDatePicker -->
             <VueDatePicker
+              ref="deadlinePicker"
               v-model="formData.deadline"
               enable-seconds
               class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
               @update:modelValue="handleDeadlineChange"
               :min-date="new Date()"
-              :min-time="minTimeObject"
             />
           </div>
         </div>
@@ -227,6 +227,7 @@ export default {
         })
 
         this.toast.success('Tugas Berhasil Dibuat Untuk Kelas!', {
+          position: 'top-center',
           timeout: 2000,
           hideProgressBar: false
         })
@@ -242,6 +243,7 @@ export default {
             if (Object.prototype.hasOwnProperty.call(errorData, key)) {
               const errorMessage = errorData[key][0]
               toast.error(errorMessage, {
+                position: 'top-center',
                 timeout: 3500,
                 hideProgressBar: true
               })
@@ -249,6 +251,7 @@ export default {
           }
         } else {
           this.toast.error('Terjadi kesalahan sistem.', {
+            position: 'top-center',
             timeout: 2000,
             hideProgressBar: false
           })
@@ -294,6 +297,13 @@ export default {
       this.role =
         this.userData.roles && this.userData.roles.length > 0 ? this.userData.roles[0] : ''
       await this.fetchClasses()
+
+      // Set minimum date for deadline to today
+      const today = new Date()
+      today.setHours(0, 0, 0, 0) // Set time to midnight
+      this.$nextTick(() => {
+        this.$refs.deadlinePicker.minDate = today // Set min-date for VueDatePicker
+      })
     } else {
       console.error('Tidak ada data otentikasi')
       this.$router.push({ name: 'login' })

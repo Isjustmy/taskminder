@@ -396,6 +396,7 @@ export default {
 
         const toast = useToast()
         toast.success('Akun Berhasil Dibuat!', {
+          position: "top-center",
           timeout: 2000,
           hideProgressBar: false
         })
@@ -414,6 +415,7 @@ export default {
               if (Object.hasOwnProperty.call(errorData, key)) {
                 const errorMessage = errorData[key][0]
                 toast.error(errorMessage, {
+                  position: "top-center",
                   timeout: 3500,
                   hideProgressBar: true
                 })
@@ -423,6 +425,7 @@ export default {
             // Handle other types of errors
             const toast = useToast()
             toast.error('Gagal Membuat User.', {
+              position: "top-center",
               timeout: 3500,
               hideProgressBar: true
             })
@@ -431,6 +434,7 @@ export default {
           // Handle other types of errors
           const toast = useToast()
           toast.error('Gagal Membuat User.', {
+            position: "top-center",
             timeout: 3500,
             hideProgressBar: true
           })

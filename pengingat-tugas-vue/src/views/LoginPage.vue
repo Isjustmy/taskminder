@@ -29,7 +29,7 @@
                 name="email"
                 type="email"
                 autocomplete="email"
-                required=""
+                required
                 placeholder="seseorang@mail.com"
                 v-model="credentials.email"
                 class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
@@ -42,7 +42,7 @@
                 name="password"
                 type="password"
                 autocomplete="current-password"
-                required=""
+                required
                 placeholder="Password"
                 v-model="credentials.password"
                 class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
@@ -160,7 +160,18 @@ export default {
         // Delay for 2 seconds before redirecting to the dashboard
         setTimeout(() => {
           this.loading = false
-          this.$router.push({ name: 'home' })
+          const userData = JSON.parse(Cookies.get('userData'))
+          const userRole = userData.roles || []
+
+          // Redirect to appropriate dashboard based on user role
+          if (userRole.includes('admin') || userRole.includes('guru')) {
+            this.$router.push({ name: 'home' }) // Redirect to regular dashboard
+          } else if (userRole.includes('siswa') || userRole.includes('pengurus_kelas')) {
+            this.$router.push({ name: 'home_student' }) // Redirect to student dashboard
+          } else {
+            // Handle other roles or scenarios
+            this.$router.push({ name: 'home' }) // Redirect to default dashboard
+          }
         }, 500)
       } catch (error) {
         console.error('Login failed:', error)

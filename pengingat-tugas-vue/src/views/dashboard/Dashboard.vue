@@ -73,60 +73,6 @@
       </div>
     </div>
 
-    <!-- konten untuk role siswa dan pengurus kelas -->
-    <div v-if="Array.isArray(role) && (role.includes('siswa') || role.includes('pengurus_kelas'))">
-      <h1 class="ml-6 mt-6 font-bold text-2xl mb-6">Tugas Anda</h1>
-      <div class="flex gap-4">
-        <div class="w-[30%] h-[30%]">
-          <div
-            class="flex-shrink-0 block p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 ml-4"
-          >
-            <h1
-              class="mb-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white text-center"
-            >
-              Judul Tugas Disini
-            </h1>
-            <p class="text-white text-center mb-3 truncate">
-              Deskripsi lorem ipsum dolor sit rnrjwkijrkewjfkds oewqrjfdskmfnweiriew
-              ejrieksfdsnfmgdsgnweoignw hqjehiwjsnflkjdsfpowejowqjfkdnvkdsnvms
-            </p>
-            <h3 class="text-white text-center">Deadline: Deadline disini</h3>
-          </div>
-        </div>
-        <div class="w-[30%] h-[30%]">
-          <div
-            class="flex-shrink-0 block p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 ml-4"
-          >
-            <h1
-              class="mb-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white text-center"
-            >
-              Judul Tugas Disini
-            </h1>
-            <p class="text-white text-center mb-3 truncate">
-              Deskripsi lorem ipsum 
-            </p>
-            <h3 class="text-white text-center">Deadline: Deadline disini</h3>
-          </div>
-        </div>
-        <div class="w-[30%] h-[30%]">
-          <div
-            class="flex-shrink-0 block p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 ml-4"
-          >
-            <h1
-              class="mb-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white text-center"
-            >
-              Judul Tugas Disini
-            </h1>
-            <p class="text-white text-center mb-3 truncate">
-              Deskripsi lorem ipsum dolor sit rnrjwkijrkewjfkds oewqrjfdskmfnweiriew
-              ejrieksfdsnfmgdsgnweoignw
-            </p>
-            <h3 class="text-white text-center">Deadline: Deadline disini</h3>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- konten untuk role guru -->
     <div v-if="Array.isArray(role) && role.includes('guru')">
       <!-- Total Tasks Card -->

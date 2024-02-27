@@ -9,22 +9,22 @@
     <div class="overflow-x-auto ml-2 mt-6">
       <table class="table">
         <!-- head -->
-        <thead class="text-[15px] text-gray-600 font-bold text-center">
+        <thead class="text-[15px] text-gray-600 font-bold">
           <tr>
-            <th class="w-[20%]">Judul Tugas</th>
-            <th class="w-[25%] overflow-x-auto text-nowrap">Deskripsi</th>
-            <th class="w-[10%]">Mata Pelajaran</th>
-            <th class="w-[10%]">Tanggal Pembuatan</th>
-            <th class="w-[15%]">Batas Waktu</th>
-            <th></th>
+            <th class="w-[20%] text-wrap">Judul Tugas</th>
+            <th class="w-[25%] text-wrap">Deskripsi</th>
+            <th class="w-[20%] text-center">Kelas</th>
+            <th class="w-[15%] text-center text-wrap">Tanggal Pembuatan</th>
+            <th class="w-[15%] text-center">Batas Waktu</th>
+            <th class="w-[5%] text-center">Aksi</th>
           </tr>
         </thead>
         <tbody v-if="teacherTasks && teacherTasks.length > 0">
           <!-- Data tugas -->
           <tr v-for="task in teacherTasks" :key="task.id">
-              <td>{{ task.title }}</td>
-              <td class="">{{ task.description }}</td>
-              <td class="text-center">{{ task.mata_pelajaran }}</td>
+              <td class="text-wrap">{{ task.title }}</td>
+              <td class="text-wrap truncate-description">{{ task.description }}</td>
+              <td class="text-center">{{ task.class.class_name }}</td>
               <td class="text-center">{{ task.created_at }}</td>
               <td class="text-center">{{ task.deadline }}</td>
               <td>
@@ -114,4 +114,11 @@ export default {
 }
 </script>
 
-<style></style>
+<style>
+.truncate-description {
+  max-width: 200px; /* Atur sesuai lebar yang diinginkan */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>

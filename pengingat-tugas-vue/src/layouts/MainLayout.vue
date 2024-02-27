@@ -39,9 +39,7 @@
               class="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52"
             >
               <li>
-                <a class="justify-between">
-                  Profile
-                </a>
+                <a class="justify-between"> Profile </a>
               </li>
               <li>
                 <a href="#logout-modal" @click.prevent="openLogoutModal()">Logout</a>
@@ -102,7 +100,7 @@
           </dialog>
         </div>
       </div>
-      <div class="bg-white rounded-lg pt-2 pl-2 m-2 h-screen">
+      <div class="bg-white rounded-lg pt-2 pl-2 m-2 h-full">
         <router-view />
       </div>
     </div>
@@ -115,25 +113,29 @@
             >{{ user.name }}!</b
           >
         </h2>
+        <p class="text-white mt-2 block text-wrap max-w-[200px]">Anda adalah {{ formattedUserRoles }}</p>
       </div>
       <hr class="w-[90%] mx-auto mt-4" />
       <ul class="flex flex-col space-y-2 p-4 w-60 min-h-ful text-base-content">
         <li class="p-2">
           <router-link
-            :to="{ name: 'home' }"
+            :to="{
+              name:
+                role.includes('siswa') || role.includes('pengurus_kelas') ? 'home_student' : 'home'
+            }"
             class="inline-block w-full px-4 py-2 text-md font-bold text-left leading-5 transition duration-150 ease-in-out border border-transparent rounded-md focus:outline-none focus:border-blue-300 focus:shadow-outline-blue"
             :class="{
               'text-white hover:bg-slate-800 hover:text-white active:bg-slate-800 active:text-white':
-                $route.name !== 'home',
+                $route.name !== 'home' && $route.name !== 'home_student',
               'text-black bg-gray-100 hover:bg-gray-300 hover:text-black active:bg-gray-400 active:text-black':
-                $route.name === 'home'
+                $route.name === 'home' || $route.name === 'home_student'
             }"
           >
             <font-awesome-icon icon="home" class="mr-2" />
             Home
           </router-link>
         </li>
-        <li v-if="userPermissions['tasks.view'] && role === 'admin'" class="p-2">
+        <li v-if="role === 'admin'" class="p-2">
           <router-link
             :to="{ name: 'user' }"
             class="inline-block w-full px-4 py-2 text-md font-bold text-left leading-5 transition duration-150 ease-in-out border border-transparent rounded-md focus:outline-none focus:border-blue-300 focus:shadow-outline-blue"
@@ -150,7 +152,12 @@
         </li>
         <li v-if="userPermissions['tasks.view']" class="p-2">
           <router-link
-            :to="{ name: 'task' }"
+            :to="{
+              name:
+                role.includes('siswa') || role.includes('pengurus_kelas')
+                  ? 'task_student_list'
+                  : 'task'
+            }"
             class="flex w-full px-4 py-2 text-md font-bold text-left leading-5 transition duration-150 ease-in-out border border-transparent rounded-md focus:outline-none focus:border-blue-300 focus:shadow-outline-blue"
             :class="{
               'text-white hover:bg-slate-800 hover:text-white active:bg-slate-800 active:text-white':
@@ -172,9 +179,10 @@
             <div class="pt-0.5">Tugas</div>
           </router-link>
         </li>
-        <!-- <li v-if="userPermissions['personal_task_calendar']" class="p-2">
+
+        <li v-if="userPermissions['personal_task_calendar']" class="p-2">
           <router-link
-            :to="{ name: 'calendar' }"
+            :to="{ name: 'calendar_home' }"
             class="inline-block w-full px-4 py-2 text-md font-bold text-left leading-5 transition duration-150 ease-in-out border border-transparent rounded-md focus:outline-none focus:border-blue-300 focus:shadow-outline-blue"
             :class="{
               'text-white hover:bg-slate-800 hover:text-white active:bg-slate-800 active:text-white':
@@ -186,7 +194,7 @@
             <font-awesome-icon icon="list-check" class="mr-2" />
             Kalender
           </router-link>
-        </li> -->
+        </li>
       </ul>
     </div>
   </div>
@@ -213,6 +221,18 @@ export default {
     },
     userPermissions() {
       return this.userData ? this.userData.permissions || {} : {}
+    },
+    formattedUserRoles() {
+      if (!this.userData || !this.userData.roles || this.userData.roles.length === 0) return ''
+      return this.userData.roles
+        .map((role) => {
+          if (role === 'pengurus_kelas') {
+            return 'Pengurus Kelas'
+          } else {
+            return role.charAt(0).toUpperCase() + role.slice(1)
+          }
+        })
+        .join(' dan ')
     }
   },
   mounted() {

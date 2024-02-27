@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use App\Models\User;
 use App\Notifications\TaskNotification;
+use App\Notifications\TaskCancelledNotification;
+use App\Notifications\TaskUpdatedNotification;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -258,9 +260,11 @@ class TaskController extends Controller
                 ];
             });
 
-            $responseCode = 200; // Atur kode respons sesuai kebutuhan Anda
-
-            return response()->json($responseData, $responseCode);
+            return response()->json([
+                'success' => true,
+                'message' => 'Detail Tugas Siswa',
+                'data' => $responseData,
+            ], 200);
         }
     }
 
@@ -280,6 +284,175 @@ class TaskController extends Controller
         $additionalData = StudentTasks::where('task_id', $taskId)->where('student_id', $studentId)->first();
 
         return response()->json(['success' => true, 'tasks' => $tasks, 'additional_data' => $additionalData ?? null]);
+    }
+
+
+    public function tugasKelasKhusus()
+    {
+        try {
+            // Mendapatkan pengguna yang sedang login
+            $user = auth()->user();
+
+            // Memeriksa apakah pengguna memiliki role 'pengurus_kelas'
+            if ($user->hasRole('pengurus_kelas')) {
+                // Mengambil class_id dari data user pengurus_kelas yang sedang login
+                $classId = $user->class_id;
+
+                // Ambil data tugas berdasarkan kelas untuk pengurus kelas
+                $tasks = Task::with(['studentTasks.students.studentClass'])
+                    ->whereHas('studentClass', function ($query) use ($classId) {
+                        $query->where('id', $classId);
+                    })
+                    ->get();
+
+                // Periksa apakah ada tugas
+                if ($tasks->isEmpty()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Tidak ada data tugas untuk kelas ini',
+                    ]);
+                }
+
+                // Format data tugas
+                $formattedTasks = $tasks->map(function ($task) {
+                    return [
+                        'id' => $task->id,
+                        'title' => $task->title,
+                        'description' => $task->description,
+                        'file_path' => $task->file_path ?? '-',
+                        'link' => $task->link ?? '-',
+                        'class_id' => $task->class_id,
+                        'creator_id' => $task->creator_id,
+                        'mata_pelajaran' => $task->mata_pelajaran,
+                        'deadline' => $task->deadline,
+                        'created_at' => $task->created_at,
+                        'students' => $task->studentTasks->map(function ($studentTask) {
+                            $student = $studentTask->students;
+                            if ($student) {
+                                return [
+                                    'id' => $student->id,
+                                    'nomor_absen' => $student->nomor_absen,
+                                    'name' => $student->name,
+                                    'student_class_id' => optional($student->studentClass)->id ?? '-',
+                                    'submission_info' => [
+                                        'file_path' => $studentTask->file_path ?? '-',
+                                        'link' => $studentTask->link ?? '-',
+                                        'is_submitted' => $studentTask->is_submitted ?? '-',
+                                        'score' => $studentTask->score ?? '-',
+                                        'scored_at' => $studentTask->scored_at ?? '-',
+                                        'submitted_at' => $studentTask->submitted_at ?? '-',
+                                        'feedback_content' => $studentTask->feedback_content ?? '-',
+                                    ],
+                                ];
+                            }
+                            return null; // Skip jika tidak ada data siswa
+                        })->filter()->values()->toArray(), // Filter null dan reset index
+                    ];
+                });
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data Tugas berdasarkan kelas untuk pengurus kelas',
+                    'data' => $formattedTasks->values()->toArray(),
+                ]);
+            }
+
+            // Jika pengguna tidak memiliki role 'pengurus_kelas'
+            return response()->json([
+                'success' => false,
+                'message' => 'Pengguna tidak memiliki akses sebagai pengurus kelas',
+            ], 403);
+        } catch (\Exception $e) {
+            // Tangani kesalahan
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat memuat data tugas',
+            ], 500);
+        }
+    }
+
+
+    public function tugasPerKelas(Request $request)
+    {
+        try {
+            // Validasi
+            $validator = Validator::make($request->all(), [
+                'class_id' => 'required|exists:student_classes,id',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            // Ambil ID kelas dari request
+            $classId = $request->input('class_id');
+
+            // Ambil data tugas dari kelas tertentu
+            $tasks = Task::with(['studentTasks.students.studentClass'])
+                ->where('class_id', $classId)
+                ->get();
+
+            // Periksa apakah ada tugas
+            if ($tasks->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada data tugas untuk kelas ini',
+                ]);
+            }
+
+            // Format data tugas
+            $formattedTasks = $tasks->map(function ($task) {
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'file_path' => $task->file_path ?? '-',
+                    'link' => $task->link ?? '-',
+                    'class_id' => $task->class_id,
+                    'creator_id' => $task->creator_id,
+                    'mata_pelajaran' => $task->mata_pelajaran,
+                    'deadline' => $task->deadline,
+                    'created_at' => $task->created_at,
+                    'students' => $task->studentTasks->map(function ($studentTask) {
+                        $student = $studentTask->students;
+                        if ($student) {
+                            return [
+                                'id' => $student->id,
+                                'nomor_absen' => $student->nomor_absen,
+                                'name' => $student->name,
+                                'student_class_id' => optional($student->studentClass)->id ?? '-',
+                                'submission_info' => [
+                                    'file_path' => $studentTask->file_path ?? '-',
+                                    'link' => $studentTask->link ?? '-',
+                                    'is_submitted' => $studentTask->is_submitted ?? '-',
+                                    'score' => $studentTask->score ?? '-',
+                                    'scored_at' => $studentTask->scored_at ?? '-',
+                                    'submitted_at' => $studentTask->submitted_at ?? '-',
+                                    'feedback_content' => $studentTask->feedback_content ?? '-',
+                                ],
+                            ];
+                        }
+                        return null; // Skip jika tidak ada data siswa
+                    })->filter()->values()->toArray(), // Filter null dan reset index
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data Tugas berdasarkan kelas',
+                'data' => $formattedTasks->values()->toArray(),
+            ]);
+        } catch (\Exception $e) {
+            // Tangani kesalahan
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat memuat data tugas',
+            ], 500);
+        }
     }
 
 
@@ -495,6 +668,8 @@ class TaskController extends Controller
 
         // Siapkan data yang akan di-submit
         $submittedTaskData = [
+            'student_id' => $studentId,
+            'task_id' => $taskId,
             'link' => $request->input('link'),
             'is_submitted' => true,
             'submitted_at' => Carbon::now(),
@@ -505,40 +680,27 @@ class TaskController extends Controller
         // Tentukan apakah tugas di-submit terlambat
         $isLateSubmission = $task->deadline <= Carbon::now();
 
-        // Jika tugas sudah pernah di-submit sebelumnya, lakukan update
-        $existingSubmission = StudentTasks::where('task_id', $taskId)
-            ->where('student_id', $studentId)
-            ->first();
+        // Hapus file lama jika ada
+        if ($request->file('file') && $existingSubmission = StudentTasks::where('task_id', $taskId)->where('student_id', $studentId)->first()) {
+            if ($existingSubmission->file_path) {
+                $fileNameReal = basename($existingSubmission->file_path);
 
-        if ($existingSubmission) {
-            // Hapus file lama jika ada
-            if ($request->file('file')) {
-                Storage::disk('public')->delete($existingSubmission->file_path);
-                $submittedTaskData['file_path'] = $request->file('file')->store('task_files', 'public');
-            }
-
-            // Update entri tugas
-            $updateResult = $existingSubmission->update($submittedTaskData + ['is_late' => $isLateSubmission]);
-
-            if ($updateResult) {
-                return new TaskResource(true, 'Tugas berhasil diupdate oleh siswa', $existingSubmission);
-            } else {
-                return new TaskResource(false, 'Gagal update tugas.', null);
+                Storage::disk('public')->delete($fileNameReal);
             }
         }
 
-        // Jika tugas belum pernah di-submit sebelumnya, lakukan create
-        $submittedTaskData['student_id'] = $studentId;
-        $submittedTaskData['task_id'] = $taskId;
-
-        // Simpan file baru jika ada
+        // Jika ada file yang diunggah, simpan file baru
         if ($request->file('file')) {
-            // Simpan file tugas siswa
             $file = $request->file('file');
             $filePath = $file->store('task_files', 'public');
             $submittedTaskData['file_path'] = $filePath;
         }
-        $submittedTask = StudentTasks::create($submittedTaskData + ['is_late' => $isLateSubmission]);
+
+        // Simpan data tugas siswa
+        $submittedTask = StudentTasks::updateOrCreate(
+            ['task_id' => $taskId, 'student_id' => $studentId],
+            $submittedTaskData + ['is_late' => $isLateSubmission]
+        );
 
         if ($submittedTask) {
             return new TaskResource(true, 'Tugas berhasil disubmit oleh siswa', $submittedTask);
@@ -582,54 +744,142 @@ class TaskController extends Controller
         return new TaskResource(true, 'Tugas berhasil dinilai oleh guru', $task);
     }
 
-
-    public function update(Request $request, $id)
+    public function update(Request $request, $taskId)
     {
+        $userAuth = auth()->guard('api')->user();
+        $isUserGuru = false; // Default value false, jika pengguna tidak memiliki peran Guru
+
+        if ($userAuth) { // Memeriksa apakah pengguna masuk
+            $userRoles = $userAuth->roles->pluck('name'); // Mendapatkan daftar peran pengguna
+            $isUserGuru = $userRoles->contains('guru'); // Memeriksa apakah pengguna memiliki peran 'admin'
+        }
+
+        // Validasi masukan pengguna
         $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:75',
-            'description' => 'required|string',
-            'deadline' => 'required|date',
-            'file' => 'nullable|file|max:2048',
-            'link' => 'nullable|string',
+            'title' => 'sometimes|string|max:75',
+            'description' => 'sometimes|string',
+            'class_id' => 'sometimes|integer|exists:student_classes,id',
+            'deadline' => 'sometimes|date',
+            'teacher_id' => ($isUserGuru) ? 'nullable' : 'required|integer|exists:users,id',
+            'file' => 'nullable',
+            'link' => 'nullable',
         ]);
 
         if ($validator->fails()) {
-            return new TaskResource(false, 'Validasi gagal', $validator->errors(), 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
-        $user = auth()->user();
+        // Temukan tugas yang akan diperbarui
+        $task = Task::findOrFail($taskId);
 
-        // Check if the user is a teacher or admin
-        if (!$user->hasAnyRole(['guru', 'admin', 'pengurus_kelas'])) {
-            return new TaskResource(false, 'Tugas hanya dapat diedit oleh guru atau admin atau pengurus kelas.', null);
-        }
+        // Simpan data tugas sebelum pembaruan
+        $oldTask = clone $task;
 
-        $task = Task::findOrFail($id);
-
-        // Update task data
-        $task->title = $request->input('title');
-        $task->description = $request->input('description');
-        $task->deadline = $request->input('deadline');
-
-        // Process file if uploaded
-        if ($request->hasFile('file')) {
-            // Delete old file if exists
-            if ($task->file_path) {
-                Storage::disk('public')->delete($task->file_path);
+        // Jika pengguna adalah seorang guru, tetapkan teacher_id dari pengguna yang masuk
+        $teacherId = null;
+        if ($isUserGuru) {
+            $teacherId = $userAuth->id;
+        } else {
+            // Jika bukan seorang guru, pastikan mereka memberikan teacher_id dalam permintaan
+            $teacherId = $request->input('teacher_id');
+            if (!$teacherId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Silakan masukkan ID guru yang akan menetapkan tugas.',
+                ], 400);
             }
-            // Store new file
-            $task->file_path = $request->file('file')->store('files_from_teacher', 'public');
         }
 
-        // Update link if provided
-        if ($request->has('link')) {
-            $task->link = $request->input('link');
+        // Periksa apakah ID guru yang diberikan valid
+        if ($teacherId) {
+            $isGuru = User::where('id', $teacherId)
+                ->role('guru')
+                ->exists();
+            if (!$isGuru) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Guru tidak ditemukan. Periksa kembali ID yang Anda masukkan.',
+                ], 404);
+            }
         }
 
-        // Save changes to the task
-        $task->save();
+        // Periksa apakah ada file yang diunggah dalam permintaan
+        if ($request->hasFile('file')) {
+            // Hapus file lama jika ada
+            if ($task->file_path) {
+                // Dapatkan nama file dari URL
+                $oldFile = basename($task->file_path);
 
-        return new TaskResource(true, 'Tugas berhasil diperbarui', $task);
+                // Hapus file lama dari sistem penyimpanan
+                Storage::disk('public')->delete('files_from_teacher/' . $oldFile);
+            }
+            // Simpan file yang baru di storage
+            $filePath = $request->file('file')->store('files_from_teacher', 'public');
+            // Perbarui path file pada tugas
+            $task->file_path = $filePath;
+        }
+
+        // Jika tugas tidak mengubah id kelas
+        if ($task->class_id == $request->input('class_id')) {
+            // Update tugas
+            $task->update($request->only(['title', 'description', 'deadline', 'teacher_id', 'file_path', 'link']));
+
+            // Notifikasi kepada siswa dalam kelas
+            $class = StudentClass::findOrFail($task->class_id);
+            $students = $class->students;
+            foreach ($students as $student) {
+                $student->notify(new TaskUpdatedNotification($task));
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tugas berhasil diperbarui.',
+                'data' => $task,
+            ]);
+        }
+
+        // Jika tugas mengubah id kelas
+        // Batalkan tugas untuk siswa di kelas sebelumnya
+        $previousClass = StudentClass::findOrFail($task->class_id);
+        $previousStudents = $previousClass->students;
+        foreach ($previousStudents as $student) {
+            $studentTask = StudentTasks::where('student_id', $student->id)
+                ->where('task_id', $task->id)
+                ->first();
+            if ($studentTask) {
+                $studentTask->delete();
+                $student->notify(new TaskCancelledNotification($oldTask));
+            }
+        }
+
+        // Buat tugas baru untuk siswa di kelas baru
+        $newClassId = $request->input('class_id');
+        $newClass = StudentClass::findOrFail($newClassId);
+        $newStudents = $newClass->students;
+        foreach ($newStudents as $student) {
+            $studentTask = new StudentTasks([
+                'student_id' => $student->id,
+                'task_id' => $task->id,
+                'teacher_id' => $teacherId,
+                'is_submitted' => false,
+            ]);
+            $studentTask->save();
+            $teacherName = User::findOrFail($teacherId)->name; // Mendapatkan nama guru dari ID guru
+            $student->notify(new TaskNotification($task, $teacherName));
+        }
+
+        // Update informasi tugas
+        $task->update($request->only(['title', 'description', 'deadline', 'class_id', 'teacher_id', 'file_path', 'link']));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tugas berhasil diperbarui dengan pindah kelas.',
+            'data' => $task,
+        ]);
     }
 
 
@@ -652,7 +902,10 @@ class TaskController extends Controller
             // Menghapus tugas berdasarkan ID yang diberikan
             $task->delete();
 
-            return new TaskResource(true, 'Tugas berhasil dihapus', []);
+            // Menghapus data submit tugas siswa yang terkait dengan task_id dan teacher_id
+            StudentTasks::where('task_id', $id)->where('teacher_id', $task->creator_id)->delete();
+
+            return new TaskResource(true, 'Tugas berhasil dihapus beserta data submit tugas siswa yang terkait', []);
         } catch (ModelNotFoundException $e) {
             return new TaskResource(false, 'Tugas tidak ditemukan!', null);
         } catch (\Exception $e) {
@@ -661,26 +914,49 @@ class TaskController extends Controller
     }
 
 
-    public function deleteTaskFromStudent($id)
+    /**
+     * Dihapus disini maksudnya TIDAK dihapus permanen, melainkan mereset data submit tugas
+     * ke nilai default, yaitu semua NULL kecuali beberapa kolom yang dibutuhkan untuk skema
+     * sistem penugasan.
+     */
+    public function deleteTaskFromStudent($taskId)
     {
         try {
-            $studentTask = StudentTasks::findOrFail($id);
+            // Dapatkan ID guru yang terkait dengan tugas
+            $task = Task::findOrFail($taskId);
+            $teacherId = $task->creator_id;
 
-            // Hapus file terkait jika ada
-            if ($studentTask->file_path) {
-                Storage::disk('public')->delete($studentTask->file_path);
-            }
+            // Dapatkan ID siswa yang sedang login
+            $studentId = Auth::id();
 
-            // Hapus tugas siswa
-            $studentTask->delete();
+            // Cari data submit tugas siswa berdasarkan ID tugas, ID siswa, dan ID guru
+            $studentTask = StudentTasks::where('task_id', $taskId)
+                ->where('student_id', $studentId)
+                ->where('teacher_id', $teacherId)
+                ->firstOrFail();
 
-            return new TaskResource(true, 'Tugas siswa berhasil dihapus', []);
+            // Reset nilai data submit tugas siswa
+            $studentTask->update([
+                'file_path' => null,
+                'link' => null,
+                'is_submitted' => false,
+                'is_late' => null,
+                'score' => null,
+                'submitted_at' => null,
+                'scored_at' => null,
+                'feedback_content' => null,
+                'updated_at' => Carbon::now(),
+                // Kolom lain yang perlu direset ke nilai default di sini
+            ]);
+
+            return new TaskResource(true, 'Tugas siswa berhasil dihapus (direset)', []);
         } catch (ModelNotFoundException $e) {
             return new TaskResource(false, 'Tugas siswa tidak ditemukan!', null);
         } catch (\Exception $e) {
-            return new TaskResource(false, 'Gagal menghapus tugas siswa.', null);
+            return new TaskResource(false, 'Gagal mereset tugas siswa.', null);
         }
     }
+
 
     // new function: get student file tasks from storage.
     // public function getStudentTaskFile($taskId)

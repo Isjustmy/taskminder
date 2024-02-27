@@ -12,6 +12,7 @@ import "vue-toastification/dist/index.css";
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css'
 
+
 library.add(fas, far, fab)
 
 import App from './App.vue'

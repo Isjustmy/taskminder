@@ -2,13 +2,17 @@
 
 namespace App\Notifications;
 
-use Illuminate\Notifications\Notification;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 
 class TaskNotification extends Notification
 {
-    public $task;
-    public $teacherName;
+    use Queueable;
+
+    protected $task;
+    protected $teacherName;
 
     public function __construct($task, $teacherName)
     {
@@ -18,18 +22,20 @@ class TaskNotification extends Notification
 
     public function via($notifiable)
     {
-        return ['mail', 'database'];
+        return ['mail', 'database']; // Sesuaikan dengan metode notifikasi yang Anda gunakan (contoh: mail, database, etc.)
     }
 
     public function toMail($notifiable)
     {
         return (new MailMessage)
-            ->subject('Tugas Baru: "' . $this->task->title . '" dari Guru ' . $this->teacherName)
-            ->greeting('Halo!')
-            ->line('Anda memiliki tugas baru: "' . $this->task->title . '" dengan deadline ' . $this->task->deadline . '.')
-            ->line('Harap kerjakan sebelum deadline tiba.');
+            ->subject('Tugas Baru')
+            ->line('Tugas baru telah ditugaskan oleh ' . $this->teacherName)
+            ->line('Judul Tugas: ' . $this->task->title)
+            ->line('Deskripsi Tugas: ' . $this->task->description)
+            ->action('Lihat Tugas', url('/tasks/' . $this->task->id))
+            ->line('Terima kasih telah menggunakan aplikasi kami!');
     }
-    
+
     public function toArray($notifiable)
     {
         return [

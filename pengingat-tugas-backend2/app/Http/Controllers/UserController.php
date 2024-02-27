@@ -17,7 +17,10 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-
+use Illuminate\Support\Facades\Password;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Mail\Message;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -53,6 +56,38 @@ class UserController extends Controller
                 'error' => $e->getMessage(),
                 'data' => null,
             ]);
+        }
+    }
+
+    function getTeacherData()
+    {
+        try {
+            // Mendapatkan semua user yang memiliki peran "guru"
+            $teachers = User::whereHas('roles', function ($query) {
+                $query->where('name', 'guru');
+            })->select('id', 'name', 'guru_mata_pelajaran')->get();
+
+            // Memeriksa apakah ada data guru yang ditemukan
+            if ($teachers->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data guru tidak ditemukan.',
+                ], 404);
+            }
+
+            // Mengirimkan data guru jika berhasil ditemukan
+            return response()->json([
+                'success' => true,
+                'message' => 'Data guru berhasil ditemukan.',
+                'data' => $teachers,
+            ], 200);
+        } catch (\Exception $e) {
+            // Menangani kesalahan jika terjadi
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil data guru.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -172,14 +207,14 @@ class UserController extends Controller
 
         $validator = Validator::make($request->all(), [
             'nomor_absen' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|unique:users,nomor_absen,NULL,id,student_class_id,' . $request->class_id : 'nullable',
-            'name' => 'required',
+            'name' => 'required|min:3',
             'email' => 'required|unique:users',
             'password' => 'required|confirmed',
             'roles' => 'required',
             'phone_number' => 'required|numeric|unique:users,phone_number,',
             'class_id' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|exists:student_classes,id' : 'nullable',
-            'nisn' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required' : 'nullable',
-            'nip' => (in_array('guru', $roles)) ? 'required' : 'nullable',
+            'nisn' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|min:10' : 'nullable',
+            'nip' => (in_array('guru', $roles)) ? 'required|min:10' : 'nullable',
             'guru_mata_pelajaran' => (in_array('guru', $roles)) ? 'required|in:RPL - Produktif,Animasi - Produktif,Broadcasting - Produktif,TO - Produktif,TPFL - Produktif,Matematika,Sejarah,Pendidikan Agama,IPAS,Olahraga,Bahasa Indonesia,Bahasa Sunda,Bahasa Inggris,Bahasa Jepang' : 'nullable',
         ], [
             'nomor_absen.required' => 'Nomor Absen wajib diisi untuk peran Siswa atau Pengurus Kelas.',
@@ -514,5 +549,47 @@ class UserController extends Controller
 
         // Return failed with Api Resource
         return new UserResource(false, 'Data User Gagal Dihapus!', null);
+    }
+
+
+    public function sendResetLink(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()->first()], 422);
+        }
+
+        $response = Password::sendResetLink($request->only('email'));
+
+        return $response === Password::RESET_LINK_SENT
+                    ? response()->json(['message' => 'Reset password link sent to your email address.'], 200)
+                    : response()->json(['error' => 'Unable to send reset password link.'], 500);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'token' => 'required|string',
+            'password' => 'required|string|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()->first()], 422);
+        }
+
+        $response = Password::reset($request->only(
+            'email', 'password', 'password_confirmation', 'token'
+        ), function ($user, $password) {
+            $user->password = bcrypt($password);
+            $user->save();
+        });
+
+        return $response === Password::PASSWORD_RESET
+                    ? response()->json(['message' => 'Password has been reset successfully.'], 200)
+                    : response()->json(['error' => 'Unable to reset password.'], 500);
     }
 }

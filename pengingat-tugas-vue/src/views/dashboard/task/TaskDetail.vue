@@ -1,5 +1,5 @@
 <template>
-  <div v-if="role === 'guru'">
+  <div v-if="role === 'guru' && role === 'admin'">
     <div class="flex">
       <router-link
         :to="{ name: 'task' }"
@@ -11,7 +11,7 @@
         Detail Data Tugas
       </h1>
       <div class="flex ml-[370px] mt-3">
-        <button class="btn btn-warning">Edit Tugas</button>
+        <router-link :to="{ name: 'task_update', params: { taskId: taskId } }" class="btn btn-warning">Edit Tugas</router-link >
         <button @click="confirmDeleteTask" class="ml-10 btn btn-error">Hapus Tugas</button>
       </div>
     </div>
@@ -117,6 +117,7 @@
         </form>
         <h3 class="font-bold text-lg">Konfirmasi Hapus Tugas</h3>
         <p class="py-4">Apakah Anda yakin ingin menghapus tugas ini?</p>
+        <p class="py-2 text-red-600"><b class="text-lg">PERINGATAN:</b> TUGAS DAN DATA SUBMIT TUGAS SISWA AKAN TERHAPUS PERMANEN!</p>
         <div class="modal-action">
           <button
             v-if="!loadingDelete"
