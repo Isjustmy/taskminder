@@ -113,7 +113,9 @@
             >{{ user.name }}!</b
           >
         </h2>
-        <p class="text-white mt-2 block text-wrap max-w-[200px]">Anda adalah {{ formattedUserRoles }}</p>
+        <p class="text-white mt-2 block text-wrap max-w-[200px]">
+          Anda adalah {{ formattedUserRoles }}
+        </p>
       </div>
       <hr class="w-[90%] mx-auto mt-4" />
       <ul class="flex flex-col space-y-2 p-4 w-60 min-h-ful text-base-content">
@@ -136,19 +138,34 @@
           </router-link>
         </li>
         <li v-if="role === 'admin'" class="p-2">
-          <router-link
-            :to="{ name: 'user' }"
-            class="inline-block w-full px-4 py-2 text-md font-bold text-left leading-5 transition duration-150 ease-in-out border border-transparent rounded-md focus:outline-none focus:border-blue-300 focus:shadow-outline-blue"
-            :class="{
-              'text-white hover:bg-slate-800 hover:text-white active:bg-slate-800 active:text-white':
-                !$route.name.startsWith('user'),
-              'text-black bg-gray-100 hover:bg-gray-300 hover:text-black active:bg-gray-400 active:text-black':
-                $route.name.startsWith('user')
-            }"
-          >
-            <font-awesome-icon icon="user" class="mr-2" />
-            User
-          </router-link>
+          <vue-collapsible-panel-group>
+            <vue-collapsible-panel>
+              <template #title>
+                <button
+                  class="custom-dropdown-btn inline-block w-full px-4 py-2 text-md font-bold text-left leading-5 transition duration-150 ease-in-out border border-transparent rounded-md focus:outline-none focus:border-blue-300 focus:shadow-outline-blue bg-gray-100 hover:bg-gray-300 hover:text-black active:bg-gray-400 active:text-black"
+                >
+                  <font-awesome-icon icon="user" class="mr-2" />
+                  User
+                </button>
+              </template>
+              <template #content>
+                <ul class="bg-gray-100 text-black">
+                  <li class="px-4 py-2">
+                    <button class="">User Siswa</button>
+                  </li>
+                  <li class="px-4 py-2">
+                    <button class="">User Guru</button>
+                  </li>
+                  <li class="px-4 py-2">
+                    <button class="">User Admin</button>
+                  </li>
+                  <li class="px-4 py-2">
+                    <button class="">User Pengurus Kelas</button>
+                  </li>
+                </ul>
+              </template>
+            </vue-collapsible-panel>
+          </vue-collapsible-panel-group>
         </li>
         <li v-if="userPermissions['tasks.view']" class="p-2">
           <router-link

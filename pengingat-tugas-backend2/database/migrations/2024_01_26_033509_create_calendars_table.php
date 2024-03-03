@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('student_id')->references('id')->on('users')->cascadeOnDelete();
             $table->date('date_marker');
+            $table->string('title_marker');
             $table->text('description');
             $table->timestamps();
         });

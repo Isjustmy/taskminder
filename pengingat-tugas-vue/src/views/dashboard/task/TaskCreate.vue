@@ -1,15 +1,44 @@
 <template>
-  <div v-if="role === 'guru' || role === 'admin' || role === 'pengurus_kelas'">
+  <div
+    v-if="
+      Array.isArray(role) &&
+      (role.includes('admin') || role.includes('guru') || role.includes('pengurus_kelas'))
+    "
+  >
     <div class="mt-2 ml-3 flex">
-      <router-link :to="{ name: 'task' }" class="btn btn-outline mr-3 text-black hover:text-white">
+      <button @click="goBack" class="btn btn-outline mr-3 text-black hover:text-white">
         <font-awesome-icon icon="arrow-left" class="text-xl" />
-      </router-link>
+      </button>
       <h1 class="text-2xl font-bold pt-2">Buat Tugas Baru Untuk Kelas</h1>
     </div>
     <div>
       <div class="flex mt-5">
         <div class="w-1/2 px-5">
-          <div>
+          <div
+            class="mb-4"
+            v-if="
+              Array.isArray(role) && (role.includes('admin') || role.includes('pengurus_kelas'))
+            "
+          >
+            <label class="block text-sm flex">
+              Guru
+              <p class="text-red-700">*</p>
+            </label>
+            <select
+              id="teacher_id"
+              name="teacher_id"
+              v-model="formData.teacher_id"
+              required
+              class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
+            >
+              <option v-if="loadingTeacherData">Sedang Memuat...</option>
+              <option v-else v-for="teacher in teachers" :key="teacher.id" :value="teacher.id">
+                {{ teacher.name }} - {{ teacher.guru_mata_pelajaran }}
+              </option>
+            </select>
+          </div>
+
+          <div v-if="Array.isArray(role) && (role.includes('admin') || role.includes('guru'))">
             <label class="block text-sm flex">
               Kelas
               <p class="text-red-700">*</p>
@@ -152,29 +181,33 @@ import VueDatePicker from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
 
 export default {
+  components: {
+    VueDatePicker
+  },
   data() {
     return {
       user: {},
-      role: '',
+      role: [],
       formData: {
         title: '',
         description: '',
         class_id: null,
         deadline: '',
         file: null,
-        link: ''
+        link: '',
+        teacher_id: null
       },
       classes: [],
+      teachers: [],
       loadingButton: false,
       loadingClassData: false,
-      toast: useToast()
+      loadingTeacherData: false,
+      toast: useToast(),
+      allowedRoles: ['guru', 'admin', 'pengurus_kelas'],
+      allowedRoles2: ['admin', 'pengurus_kelas']
     }
   },
   computed: {
-    userData() {
-      const userData = Cookies.get('userData')
-      return userData ? JSON.parse(userData) : null
-    },
     minTimeObject() {
       const now = new Date()
       return {
@@ -182,12 +215,31 @@ export default {
         minutes: now.getMinutes(),
         seconds: now.getSeconds()
       }
+    },
+    minDate() {
+      return Array.isArray(this.role) &&
+        (this.role.icludes('admin') ||
+          this.role.includes('guru') ||
+          this.role.includes('pengurus_kelas'))
+        ? new Date()
+        : null
     }
   },
-  components: {
-    VueDatePicker
-  },
   methods: {
+    goBack() {
+      this.$router.go(-1)
+    },
+    async fetchTeachers() {
+      this.loadingTeacherData = true // Set loadingTeacherData ke true saat memulai pengambilan data guru
+      try {
+        const response = await api.get('/api/getTeacherData')
+        this.teachers = response.data.data
+        this.loadingTeacherData = false // Set loadingTeacherData kembali ke false setelah selesai pengambilan data guru
+      } catch (error) {
+        this.loadingTeacherData = false
+        console.error('Error fetching teachers:', error)
+      }
+    },
     async fetchClasses() {
       this.loadingClassData = true
       try {
@@ -209,7 +261,21 @@ export default {
         const formData = new FormData()
         formData.append('title', this.formData.title)
         formData.append('description', this.formData.description)
-        formData.append('class_id', this.formData.class_id)
+
+        if (
+          Array.isArray(this.role) &&
+          (this.role.includes('admin') || this.role.includes('guru'))
+        ) {
+          formData.append('class_id', this.formData.class_id)
+        }
+
+        if (
+          Array.isArray(this.role) &&
+          (this.role.includes('admin') || this.role.includes('pengurus_kelas'))
+        ) {
+          formData.append('teacher_id', this.formData.teacher_id)
+        }
+
         formData.append('deadline', this.formData.deadline)
 
         if (this.formData.file) {
@@ -232,7 +298,7 @@ export default {
           hideProgressBar: false
         })
 
-        this.$router.push({ name: 'task' })
+        this.$router.go(-1)
         console.log('Tugas berhasil dikirim:', response.data)
       } catch (error) {
         console.error('Error submitting task:', error)
@@ -292,11 +358,14 @@ export default {
     }
   },
   async created() {
-    if (this.userData) {
-      this.user = this.userData.user || {}
-      this.role =
-        this.userData.roles && this.userData.roles.length > 0 ? this.userData.roles[0] : ''
+    const getUserData = Cookies.get('userData')
+    const userData = JSON.parse(getUserData)
+    console.log(userData)
+    if (userData) {
+      this.user = userData.user || {}
+      this.role = userData.roles && userData.roles.length > 0 ? userData.roles : []
       await this.fetchClasses()
+      await this.fetchTeachers()
 
       // Set minimum date for deadline to today
       const today = new Date()

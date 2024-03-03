@@ -1,5 +1,5 @@
 <template>
-  <div v-if="role === 'guru' && role === 'admin'">
+  <div v-if="role === 'guru' || role === 'admin'">
     <div class="flex">
       <router-link
         :to="{ name: 'task' }"
@@ -11,7 +11,11 @@
         Detail Data Tugas
       </h1>
       <div class="flex ml-[370px] mt-3">
-        <router-link :to="{ name: 'task_update', params: { taskId: taskId } }" class="btn btn-warning">Edit Tugas</router-link >
+        <router-link
+          :to="{ name: 'task_update', params: { taskId: taskId } }"
+          class="btn btn-warning"
+          >Edit Tugas</router-link
+        >
         <button @click="confirmDeleteTask" class="ml-10 btn btn-error">Hapus Tugas</button>
       </div>
     </div>
@@ -24,7 +28,7 @@
             </div>
             <div class="ml-4 w-[70%] text-wrap content-end text-justify flex">
               <p class="font-bold text-lg">:</p>
-              <p class="ml-2 mt-0.5">{{ loadingDataTasks ? "Memuat..." : detailedTasks.title }}</p>
+              <p class="ml-2 mt-0.5">{{ loadingDataTasks ? 'Memuat...' : detailedTasks.title }}</p>
             </div>
           </div>
           <div class="flex mt-6">
@@ -33,7 +37,9 @@
             </div>
             <div class="ml-4 w-[70%] text-wrap content-end text-justify flex">
               <p class="font-bold text-lg">:</p>
-              <p class="ml-2 mt-1">{{ loadingDataTasks ? "Memuat..." : detailedTasks.description }}</p>
+              <p class="ml-2 mt-1">
+                {{ loadingDataTasks ? 'Memuat...' : detailedTasks.description }}
+              </p>
             </div>
           </div>
           <div class="flex mt-6">
@@ -42,7 +48,7 @@
             </div>
             <div class="ml-4 w-[70%] text-wrap content-end text-justify flex">
               <p class="font-bold text-lg">:</p>
-              <p class="ml-2 mt-1">{{ loadingDataTasks ? "Memuat..." : detailedTasks.deadline }}</p>
+              <p class="ml-2 mt-1">{{ loadingDataTasks ? 'Memuat...' : detailedTasks.deadline }}</p>
             </div>
           </div>
           <div class="flex mt-6">
@@ -51,7 +57,9 @@
             </div>
             <div class="ml-4 w-[70%] text-wrap content-end text-justify flex">
               <p class="font-bold text-lg">:</p>
-              <p class="ml-2 mt-1">{{ loadingDataTasks ? "Memuat..." : detailedTasks.class.class_name }}</p>
+              <p class="ml-2 mt-1">
+                {{ loadingDataTasks ? 'Memuat...' : detailedTasks.class.class_name }}
+              </p>
             </div>
           </div>
           <div class="flex mt-6">
@@ -91,7 +99,9 @@
               <input
                 type="text"
                 class="input input-bordered w-full max-w-xs overflow-x-auto"
-                :value="loadingDataTasks ? 'Memuat...' : (detailedTasks.link || 'Tidak ada link tugas')"
+                :value="
+                  loadingDataTasks ? 'Memuat...' : detailedTasks.link || 'Tidak ada link tugas'
+                "
                 readonly
               />
             </div>
@@ -101,7 +111,12 @@
     </div>
     <dialog id="image-modal" class="modal">
       <div class="modal-box">
-        <span class="close" @click="closeImageModal">&times;</span>
+        <span
+          class="close btn btn-neutral text-white"
+          @click="closeImageModal"
+          style="font-size: 14px; cursor: pointer; position: absolute; top: 10px; right: 10px"
+          >Tutup</span
+        >
         <img :src="fullImagePath" alt="Full Image" />
       </div>
     </dialog>
@@ -117,7 +132,10 @@
         </form>
         <h3 class="font-bold text-lg">Konfirmasi Hapus Tugas</h3>
         <p class="py-4">Apakah Anda yakin ingin menghapus tugas ini?</p>
-        <p class="py-2 text-red-600"><b class="text-lg">PERINGATAN:</b> TUGAS DAN DATA SUBMIT TUGAS SISWA AKAN TERHAPUS PERMANEN!</p>
+        <p class="py-2 text-red-600">
+          <b class="text-lg">PERINGATAN:</b> TUGAS DAN DATA SUBMIT TUGAS SISWA AKAN TERHAPUS
+          PERMANEN!
+        </p>
         <div class="modal-action">
           <button
             v-if="!loadingDelete"
@@ -255,7 +273,7 @@ export default {
       }
     },
     async fetchSpesificTasks() {
-      this.loadingDataTasks = true;
+      this.loadingDataTasks = true
       try {
         const response = await api.get(`/api/tasks/list/teacher/${this.taskId}`)
         this.loadingDataTasks = false
@@ -265,7 +283,7 @@ export default {
         console.error('Error fetching teacher detailed tasks:', error)
         // Tambahkan penanganan kesalahan sesuai kebutuhan Anda
       } finally {
-        this.loadingDataTasks = false;
+        this.loadingDataTasks = false
       }
     }
   },
@@ -278,6 +296,10 @@ export default {
       // Memeriksa apakah pengguna adalah guru sebelum memanggil fetchTeacherTasks
       if (this.role === 'guru' || this.role === 'admin') {
         await this.fetchSpesificTasks()
+        if (this.totalTasks.data) {
+          this.barChartData.labels = this.totalTasks.data.map((task) => task.subject)
+          this.barChartData.datasets[0].data = this.totalTasks.data.map((task) => task.count)
+        }
       } else {
         // tes
       }

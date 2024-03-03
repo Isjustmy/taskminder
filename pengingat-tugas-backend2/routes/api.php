@@ -39,7 +39,7 @@ Route::post('password/reset', [UserController::class, 'resetPassword'])->name('p
 // Apply auth:api middleware to all routes
 Route::middleware('auth:api')->group(function () {
 
-    Route::get('/getTeacherData',[UserController::class, 'getTeacherData']);
+    Route::get('/getTeacherData',[UserController::class, 'getTeacherData'])->middleware('role:admin|pengurus_kelas|guru');
 
     Route::get('/tesRole', [TaskController::class, 'tesGetRole']);
 
@@ -72,11 +72,11 @@ Route::middleware('auth:api')->group(function () {
 
         // Route::post('/create', [TaskController::class, 'createTaskForStudent'])->middleware('permission:tasks.create');
         Route::post('/create/class', [TaskController::class, 'createTaskForClass'])->middleware('permission:tasks.create');
-        Route::put('/{id}/submit', [TaskController::class, 'submitTaskByStudent'])->middleware('permission:tasks.submit');
+        Route::post('/{id}/submit', [TaskController::class, 'submitTaskByStudent'])->middleware('permission:tasks.submit');
         Route::put('/{id}/grade', [TaskController::class, 'gradeTaskByTeacher'])->middleware('permission:grade_task');
         Route::put('/{id}/update', [TaskController::class, 'update'])->middleware('permission:tasks.edit');
         Route::delete('/deleteTask/{id}', [TaskController::class, 'deleteTaskFromTeacher'])->middleware('permission:tasks.delete');
-        Route::put('/deleteStudentTask/{id}', [TaskController::class, 'deleteTaskFromTeacher'])->middleware('permission:tasks.delete');
+        Route::put('/resetSubmit/{id}', [TaskController::class, 'deleteTaskFromStudent'])->middleware('role:siswa|pengurus_kelas');
 
         //new: route get student task file
         Route::get('/{id}/file', [TaskController::class, 'getStudentTaskFile'])->middleware('permission:tasks.view');
@@ -96,7 +96,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/{id}', [CalendarController::class, 'show'])->middleware('permission:personal_task_calendar');
         Route::post('/create', [CalendarController::class, 'store'])->middleware('permission:personal_task_calendar');
         Route::put('/{id}/update', [CalendarController::class, 'update'])->middleware('permission:personal_task_calendar');
-        Route::delete('/{id}', [CalendarController::class, 'delete'])->middleware('permission:personal_task_calendar');
+        Route::delete('/{id}/delete', [CalendarController::class, 'destroy'])->middleware('permission:personal_task_calendar');
     });
 
     // Endpoint untuk mendapatkan notifikasi
@@ -104,4 +104,9 @@ Route::middleware('auth:api')->group(function () {
 
     // Endpoint untuk menandai notifikasi sebagai sudah dibaca
     Route::post('/notifications/mark-as-read/{notification}', [NotificationController::class, 'markAsRead']);
+
+    Route::get('/akun/siswa', [UserController::class, 'getSiswaUsers'])->middleware(['permission:users.view', 'role:admin']);
+    Route::get('/akun/guru', [UserController::class, 'getGuruUsers'])->middleware(['permission:users.view', 'role:admin']);
+    Route::get('/akun/admin', [UserController::class, 'getAdminUsers'])->middleware(['permission:users.view', 'role:admin']);
+    Route::get('/akun/pengurus_kelas', [UserController::class, 'getPengurusKelasUsers'])->middleware(['permission:users.view', 'role:admin']);
 });

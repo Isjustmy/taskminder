@@ -191,13 +191,13 @@
             </div>
             <div>
               <label class="block mt-4 text-sm flex">
-                Nomor Telepon
+                Nomor Telepon (awalan 08...)
                 <p class="text-red-700">*</p></label
               >
               <input
                 id="phone_number"
                 name="phone_number"
-                type="phone_number"
+                type="text"
                 autocomplete="phone_number"
                 required
                 placeholder="0888888888888"

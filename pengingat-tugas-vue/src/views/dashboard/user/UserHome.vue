@@ -48,7 +48,7 @@
           <!-- head -->
           <thead class="text-black font-bold text-[16px] border border-black">
             <tr>
-              <th class="text-center w-[5%] border border-black">ID</th>
+              <th class="text-center w-[5%] border border-black">No.</th>
               <th class="text-center text-wrap text-sm w-[5%] px-0 border border-black">
                 Nomor Absen
               </th>

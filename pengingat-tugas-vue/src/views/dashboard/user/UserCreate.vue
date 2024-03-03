@@ -2,13 +2,13 @@
   <div v-if="role === 'admin'">
     <div class="">
       <div class="flex flex-col md:flex-row">
-        <router-link
-          :to="{ name: 'user' }"
+        <button
+          @click="goBack"
           class="btn btn-neutral text-white absolute ml-3 mt-3 hover:bg-white hover:text-black"
         >
           <font-awesome-icon icon="arrow-left" />
           Kembali
-        </router-link>
+        </button>
         <h1 class="mb-4 text-3xl font-bold text-center absolute ml-[150px] mt-4 text-gray-700">
           Buat User Baru
         </h1>
@@ -91,7 +91,7 @@
           </div>
           <div>
             <label class="block mt-4 text-sm flex">
-              Nomor Telepon
+              Nomor Telepon (awalan 08... atau +62 atau nomor dengan awalan "+" lainnya)
               <p class="text-red-700">*</p></label
             >
             <input
@@ -121,7 +121,7 @@
               class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
             />
           </div>
-          <div>
+          <div class="mb-4">
             <label class="block mt-4 text-sm flex">
               Konfirmasi Password
               <p class="text-red-700">*</p></label
@@ -140,7 +140,9 @@
         </div>
         <div class="w-1/2 px-5">
           <div>
-            <label class="block text-sm flex" v-if="isValidRegistration() && isGuruRoleDisabled() && isAdminRoleDisabled()"
+            <label
+              class="block text-sm flex"
+              v-if="isValidRegistration() && isGuruRoleDisabled() && isAdminRoleDisabled()"
               >NISN
               <p class="text-red-700">*</p></label
             >
@@ -307,6 +309,9 @@ export default {
     }
   },
   methods: {
+    goBack() {
+      this.$router.go(-1)
+    },
     async toggleRole(role) {
       if (role === 'siswa' && this.selectedRoles.includes('guru')) {
         return
@@ -388,7 +393,7 @@ export default {
         email: this.credentials.email,
         guru_mata_pelajaran: this.guru_mata_pelajaran,
         nisn: this.credentials.nisn,
-        nip: this.credentials.nip,
+        nip: this.credentials.nip
       }
 
       try {
@@ -396,16 +401,24 @@ export default {
 
         const toast = useToast()
         toast.success('Akun Berhasil Dibuat!', {
-          position: "top-center",
+          position: 'top-center',
           timeout: 2000,
           hideProgressBar: false
         })
 
-        this.$router.push({ name: 'user' })
+        this.$router.go(-1)
       } catch (error) {
         console.error('Gagal Menambahkan User Baru:', error)
 
-        if (error.response && error.response.data) {
+        if (error.response && error.response.data && error.response.data.error) {
+          const errorMessage = error.response.data.error
+          const toast = useToast()
+          toast.error(errorMessage, {
+            position: 'top-center',
+            timeout: 3500,
+            hideProgressBar: true
+          })
+        } else if (error.response && error.response.data) {
           const errorData = error.response.data
 
           // Assuming Laravel validation errors are returned as an object
@@ -415,26 +428,18 @@ export default {
               if (Object.hasOwnProperty.call(errorData, key)) {
                 const errorMessage = errorData[key][0]
                 toast.error(errorMessage, {
-                  position: "top-center",
+                  position: 'top-center',
                   timeout: 3500,
                   hideProgressBar: true
                 })
               }
             }
-          } else {
-            // Handle other types of errors
-            const toast = useToast()
-            toast.error('Gagal Membuat User.', {
-              position: "top-center",
-              timeout: 3500,
-              hideProgressBar: true
-            })
           }
         } else {
           // Handle other types of errors
           const toast = useToast()
           toast.error('Gagal Membuat User.', {
-            position: "top-center",
+            position: 'top-center',
             timeout: 3500,
             hideProgressBar: true
           })

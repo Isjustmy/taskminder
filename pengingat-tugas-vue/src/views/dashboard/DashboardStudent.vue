@@ -1,12 +1,23 @@
 <template>
   <!-- konten untuk role siswa dan pengurus kelas -->
-  <div v-if="Array.isArray(role) && (role.includes('siswa') || role.includes('pengurus_kelas'))">
+  <div>
     <h1 class="ml-6 mt-6 font-bold text-2xl mb-6">Tugas Anda</h1>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div v-if="isLoading" class="text-center mt-4">Memuat...</div>
+    <!-- Tampilkan pesan Memuat -->
+    <div v-else-if="sortedTasks.length > 0" class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div
         v-for="(task, index) in sortedTasks"
         :key="task.id"
-        class="w-full bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700"
+        :class="{
+          'bg-green-800': isGradedAndSubmitted(task.submission_info),
+          'bg-green-500': isSubmitted(task.submission_info),
+          'bg-red-500': isDeadlineApproaching(task.deadline, 3) || isDeadlineToday(task.deadline),
+          'bg-yellow-500':
+            isDeadlineApproaching(task.deadline, 6) && !isDeadlineApproaching(task.deadline, 3),
+          'bg-gray-800':
+            !isDeadlineApproaching(task.deadline, 6) && !isSubmitted(task.submission_info)
+        }"
+        class="w-full border border-gray-200 rounded-lg shadow"
       >
         <div class="p-6">
           <h1
@@ -17,24 +28,24 @@
           <p class="text-white text-center mb-3">
             Deskripsi tugas: {{ truncateDescription(task.description) }}
           </p>
-          <h3 class="text-white text-center">Deadline: {{ formatDate(task.deadline) }}</h3>
+          <h3 class="text-white text-center mb-3">Deadline: {{ formatDate(task.deadline) }}</h3>
+          <!-- Tambahkan informasi apakah sudah dinilai atau belum -->
+          <h3 class="text-white text-center">Sudah Dinilai: {{ isGraded(task.submission_info) }}</h3>
+          <!-- Tambahkan informasi apakah sudah ada feedback_content atau belum -->
+          <h3 class="text-white text-center">Ada feedback dari guru: {{ hasFeedback(task.submission_info) }}</h3>
         </div>
       </div>
-      <!-- Informasi sisa tugas yang belum ditampilkan -->
-      <div
-        v-if="tasks.length > 7"
-        class="w-full bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700"
-      >
-        <div class="p-6">
-          <h1
-            class="mb-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white text-center"
-          >
-            Informasi Tugas
-          </h1>
-          <p class="text-white text-center mb-3 truncate">
-            Anda memiliki {{ tasks.length - 7 }} tugas lain yang belum ditampilkan.
-          </p>
-        </div>
+    </div>
+    <div
+      v-else
+      class="w-full bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700"
+    >
+      <div class="p-6">
+        <h1
+          class="mb-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white text-center"
+        >
+          Tidak Ada Data Tugas
+        </h1>
       </div>
     </div>
   </div>
@@ -52,8 +63,8 @@ export default {
       role: '',
       tasks: [],
       sortedTasks: [],
-      // Membuat instance toast di luar metode
-      toast: useToast()
+      isLoading: false, // Tambahkan properti isLoading
+      errorMessage: ''
     }
   },
   computed: {
@@ -63,7 +74,7 @@ export default {
     }
   },
   async created() {
-    this.toast = useToast()
+    const toast = useToast()
 
     const userData = this.userData
     if (userData) {
@@ -77,6 +88,7 @@ export default {
   },
   methods: {
     async fetchTasks() {
+      this.isLoading = true // Set isLoading ke true saat memulai pengambilan data
       try {
         const response = await api.get('/api/tasks/murid')
         if (response.status === 200) {
@@ -86,35 +98,21 @@ export default {
             this.sortTasks()
           } else {
             console.error('Error fetching tasks:', responseData)
-            // Menggunakan instance toast yang sudah dibuat
-            await this.toast.error('Gagal mengambil data tugas', {
-              position: 'top-center',
-              timeout: 1500
-            })
+            this.errorMessage = 'Gagal mengambil data tugas'
           }
         } else if (response.status === 401) {
           console.error('Error fetching tasks:', response)
           this.$router.push({ name: 'login' })
-          // Menggunakan instance toast yang sudah dibuat
-          await this.toast.error('Terjadi error. Harap login ulang', {
-            position: 'top-center',
-            timeout: 1500
-          })
+          this.errorMessage = 'Terjadi error. Harap login ulang'
         } else {
           console.error('Unexpected error occurred:', response)
-          // Menggunakan instance toast yang sudah dibuat
-          await this.toast.error('Terjadi kesalahan yang tidak terduga. Silakan coba lagi nanti', {
-            position: 'top-center',
-            timeout: 1500
-          })
+          this.errorMessage = 'Terjadi kesalahan yang tidak terduga. Silakan coba lagi nanti'
         }
       } catch (error) {
         console.error('Error fetching tasks:', error)
-        // Menggunakan instance toast yang sudah dibuat
-        await this.toast.error('Terjadi kesalahan saat mengambil data tugas', {
-          position: 'top-center',
-          timeout: 1500
-        })
+        this.errorMessage = 'Terjadi kesalahan saat mengambil data tugas'
+      } finally {
+        this.isLoading = false // Set isLoading kembali ke false setelah selesai pengambilan data
       }
     },
     sortTasks() {
@@ -142,11 +140,62 @@ export default {
         second: 'numeric'
       }
       return new Date(dateString).toLocaleDateString('id-ID', options)
+    },
+    isGradedAndSubmitted(submissionInfo) {
+    for (const submission of submissionInfo) {
+      if (submission.is_submitted === 1 && submission.score !== '-') {
+        return true;
+      }
+    }
+    return false;
+  },
+    isSubmitted(submissionInfo) {
+      for (const submission of submissionInfo) {
+        if (submission.is_submitted === 1) {
+          return true
+        }
+      }
+      return false
+    },
+    isDeadlineToday(deadline) {
+      const today = new Date().setHours(0, 0, 0, 0)
+      return new Date(deadline).setHours(0, 0, 0, 0) === today
+    },
+    isDeadlineApproaching(deadline, daysAhead) {
+      const today = new Date().setHours(0, 0, 0, 0)
+      const deadlineDate = new Date(deadline).setHours(0, 0, 0, 0)
+      const deadlineThreshold = new Date(today)
+      deadlineThreshold.setDate(deadlineThreshold.getDate() + daysAhead)
+      return deadlineDate <= deadlineThreshold
+    },
+    // Method untuk mengecek apakah tugas sudah dinilai
+    isGraded(submissionInfo) {
+      for (const submission of submissionInfo) {
+        if (submission.score !== '-') {
+          return "Ya"
+        }
+      }
+      return "Belum"
+    },
+    // Method untuk mengecek apakah ada feedback_content
+    hasFeedback(submissionInfo) {
+      for (const submission of submissionInfo) {
+        if (submission.feedback_content !== '-') {
+          return "Ya"
+        }
+      }
+      return "Belum"
     }
   }
 }
 </script>
 
 <style>
-/* Tambahkan gaya CSS jika diperlukan */
+.bg-green-500 {
+  background-color: #34D399 !important;
+}
+.bg-green-800 {
+  background-color: #08a102 !important;
+}
+
 </style>

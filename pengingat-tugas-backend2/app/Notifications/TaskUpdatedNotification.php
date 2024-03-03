@@ -45,7 +45,7 @@ class TaskUpdatedNotification extends Notification
         return (new MailMessage)
                     ->subject('Tugas Diperbarui')
                     ->line('Tugas telah diperbarui. Silakan periksa detailnya.')
-                    ->action('Lihat Tugas', url('/tasks/' . $this->task->id))
+                    ->action('Lihat Tugas', url('/tasks/' . $this->task->id));
     }
 
     /**

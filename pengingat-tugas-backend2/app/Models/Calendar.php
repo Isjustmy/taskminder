@@ -10,7 +10,7 @@ class Calendar extends Model
     use HasFactory;
 
     protected $fillable = [
-        'student_id', 'date_marker', 'description'
+        'student_id', 'date_marker', 'title_marker', 'description'
     ];
 
     public function user()

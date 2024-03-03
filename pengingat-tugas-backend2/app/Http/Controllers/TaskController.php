@@ -236,6 +236,7 @@ class TaskController extends Controller
                     'file_path' => $studentTask->file_path ?? '-',
                     'link' => $studentTask->link ?? '-',
                     'is_submitted' => $studentTask->is_submitted ?? '-',
+                    'is_late' => $studentTask->is_late ?? '-',
                     'score' => $studentTask->score ?? '-',
                     'scored_at' => $studentTask->scored_at ?? '-',
                     'submitted_at' => $studentTask->submitted_at ?? '-',
@@ -528,13 +529,16 @@ class TaskController extends Controller
     // kode untuk membuat tugas untuk semua siswa didalam satu kelas tertentu
     public function createTaskForClass(Request $request)
     {
+        // Periksa role pengguna yang sedang login
+        $user = Auth::user();
+
         // Validasi
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:75',
             'description' => 'required|string',
-            'class_id' => 'required|integer|exists:student_classes,id',
+            'class_id' => (($user->hasRole('guru') || $user->hasRole('admin')) ? 'required|integer|exists:student_classes,id' : 'nullable'),
             'deadline' => 'required|date',
-            'teacher_id' => 'sometimes|integer|exists:users,id',
+            'teacher_id' => (($user->hasRole('pengurus_kelas') || $user->hasRole('admin')) ? 'required|integer|exists:users,id' : 'nullable'),
             'file' => 'nullable|file|max:2048',
             'link' => 'nullable|string',
         ]);
@@ -543,15 +547,36 @@ class TaskController extends Controller
             return new TaskResource(false, 'Validasi gagal', $validator->errors(), 422);
         }
 
-        // Periksa role pengguna yang sedang login
-        $user = Auth::user();
+        // Ambil ID kelas dari pengurus_kelas yang sedang login
+        $class_id = null;
+        if ($user->hasRole('pengurus_kelas')) {
+            // Dapatkan data pengurus_kelas yang sedang login
+            $pengurusKelas = User::with('studentClass')->find($user->id);
+
+            // Periksa apakah data pengurus_kelas ditemukan
+            if ($pengurusKelas) {
+                // Ambil ID kelas dari pengurus_kelas
+                $class_id = $pengurusKelas->studentClass->id;
+            }
+        } elseif ($user->hasRole('guru') || $user->hasRole('admin')) {
+            // Jika role adalah guru atau admin, gunakan class_id yang disediakan dalam permintaan
+            $class_id = $request->input('class_id');
+        }
+
+        if (!$class_id) {
+            // Jika tidak ada class_id yang tersedia, kembalikan pesan kesalahan
+            return new TaskResource(false, 'ID kelas tidak ditemukan', null);
+        }
+
         $creatorId = null;
         $guruName = null;
+        $mataPelajaran = null; // Tambahkan variabel untuk menyimpan mata pelajaran
 
         if ($user->hasRole('guru')) {
             // Jika guru yang login, gunakan ID guru
             $creatorId = $user->id;
             $guruName = $user->name;
+            $mataPelajaran = $user->guru_mata_pelajaran; // Ambil mata pelajaran dari user guru
         } elseif ($user->hasAnyRole(['pengurus_kelas', 'admin'])) {
             // Jika pengurus_kelas atau admin yang membuat tugas
             if (!$request->has('teacher_id')) {
@@ -574,6 +599,7 @@ class TaskController extends Controller
             // Gunakan ID guru yang dimasukkan oleh pengurus_kelas
             $creatorId = $guruIdFromInput;
             $guruName = $isGuru->name;
+            $mataPelajaran = $isGuru->guru_mata_pelajaran; // Ambil mata pelajaran dari user guru
         }
 
         // Menyimpan file penugasan dari guru jika ada
@@ -583,9 +609,11 @@ class TaskController extends Controller
         }
 
         // Buat data tugas
-        $taskData = $request->only(['title', 'description', 'class_id', 'deadline']);
+        $taskData = $request->only(['title', 'description', 'deadline']);
+        $taskData['class_id'] = $class_id;
         $taskData['creator_id'] = $creatorId;
         $taskData['created_at'] = Carbon::now();
+        $taskData['mata_pelajaran'] = $mataPelajaran; // Simpan mata pelajaran ke dalam data tugas
 
         // Buat tugas
         $task = Task::create($taskData);
@@ -595,8 +623,8 @@ class TaskController extends Controller
         $task->link = $request->link;
         $task->save();
 
-        // Temukan kelas
-        $class = StudentClass::findOrFail($request->input('class_id'));
+        // Temukan kelas berdasarkan ID yang telah diambil sebelumnya
+        $class = StudentClass::findOrFail($class_id);
 
         // Ambil daftar siswa dalam kelas
         $students = $class->students;
@@ -629,6 +657,7 @@ class TaskController extends Controller
             'created_at' => $task->created_at,
             'file_path' => $task->file_path,
             'link' => $task->link,
+            'mata_pelajaran' => $task->mata_pelajaran, // Sertakan mata pelajaran dalam respons
             'id' => $task->id,
         ];
 
@@ -652,12 +681,16 @@ class TaskController extends Controller
     {
         // Validasi input
         $validator = Validator::make($request->all(), [
-            'file' => 'nullable|file|mimes:pdf,doc,docx,png,jpg,jpeg,zip|max:2000',
+            'file' => 'required|file|mimes:pdf,doc,docx,png,jpg,jpeg,zip|max:2000',
             'link' => 'nullable|url',
         ]);
 
         if ($validator->fails()) {
-            return new TaskResource(false, 'Validasi gagal', $validator->errors());
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
         // Dapatkan informasi siswa yang sedang masuk
@@ -681,18 +714,21 @@ class TaskController extends Controller
         $isLateSubmission = $task->deadline <= Carbon::now();
 
         // Hapus file lama jika ada
-        if ($request->file('file') && $existingSubmission = StudentTasks::where('task_id', $taskId)->where('student_id', $studentId)->first()) {
-            if ($existingSubmission->file_path) {
-                $fileNameReal = basename($existingSubmission->file_path);
-
-                Storage::disk('public')->delete($fileNameReal);
-            }
-        }
-
-        // Jika ada file yang diunggah, simpan file baru
         if ($request->file('file')) {
-            $file = $request->file('file');
-            $filePath = $file->store('task_files', 'public');
+            // Periksa apakah ada entri submission yang sudah ada
+            $existingSubmission = StudentTasks::where('task_id', $taskId)
+                ->where('student_id', $studentId)
+                ->first();
+
+            // Jika ada entri submission yang sudah ada dan memiliki file_path, hapus file tersebut
+            if ($existingSubmission && $existingSubmission->file_path) {
+                $fileNameReal = basename($existingSubmission->file_path);
+                Storage::disk('public')->delete('task_files/' . $fileNameReal);
+            }
+
+            $filePath = null;
+
+            $filePath = $request->file('file')->store('task_files', 'public');
             $submittedTaskData['file_path'] = $filePath;
         }
 
@@ -758,7 +794,7 @@ class TaskController extends Controller
         $validator = Validator::make($request->all(), [
             'title' => 'sometimes|string|max:75',
             'description' => 'sometimes|string',
-            'class_id' => 'sometimes|integer|exists:student_classes,id',
+            'class_id' => 'required|integer|exists:student_classes,id',
             'deadline' => 'sometimes|date',
             'teacher_id' => ($isUserGuru) ? 'nullable' : 'required|integer|exists:users,id',
             'file' => 'nullable',
@@ -888,6 +924,34 @@ class TaskController extends Controller
         try {
             $task = Task::findOrFail($id);
 
+            // Mendapatkan kelas terkait dengan tugas
+            $class = $task->studentClass;
+
+            // Jika kelas tidak ditemukan, kembalikan respon error
+            if (!$class) {
+                return new TaskResource(false, 'Kelas tidak ditemukan untuk tugas ini.', null);
+            }
+
+            // Mendapatkan siswa yang terdaftar dalam kelas
+            $students = $class->students;
+
+            // Mengirim notifikasi kepada setiap siswa
+            foreach ($students as $student) {
+                $student->notify(new TaskCancelledNotification($task));
+            }
+
+            // Menghapus data submit tugas siswa yang terkait dengan task_id dan teacher_id
+            $studentTaskData = StudentTasks::where('task_id', $id)->where('teacher_id', $task->creator_id)->get();
+
+            foreach ($studentTaskData as $studentTask) {
+                if ($studentTask->file_path) {
+                    $fileName = basename($studentTask->file_path);
+                    Storage::disk('public')->delete('task_files/' . $fileName);
+                }
+
+                $studentTask->delete();
+            }
+
             // Hapus file terkait jika ada
             if ($task->file_path) {
                 // Dapatkan nama file dari URL
@@ -897,13 +961,11 @@ class TaskController extends Controller
                 Storage::disk('public')->delete('files_from_teacher/' . $fileName);
             }
 
+            // Hapus notifikasi terkait dengan tugas
             DB::table('notifications')->where('data->task_id', $task->id)->delete();
 
             // Menghapus tugas berdasarkan ID yang diberikan
             $task->delete();
-
-            // Menghapus data submit tugas siswa yang terkait dengan task_id dan teacher_id
-            StudentTasks::where('task_id', $id)->where('teacher_id', $task->creator_id)->delete();
 
             return new TaskResource(true, 'Tugas berhasil dihapus beserta data submit tugas siswa yang terkait', []);
         } catch (ModelNotFoundException $e) {
@@ -935,6 +997,12 @@ class TaskController extends Controller
                 ->where('teacher_id', $teacherId)
                 ->firstOrFail();
 
+            // Dapatkan nama file dari URL
+            $fileNameStudent = basename($studentTask->file_path);
+
+            // Hapus file dari sistem penyimpanan berdasarkan nama file
+            Storage::disk('public')->delete('task_files/' . $fileNameStudent);
+
             // Reset nilai data submit tugas siswa
             $studentTask->update([
                 'file_path' => null,
@@ -955,6 +1023,50 @@ class TaskController extends Controller
         } catch (\Exception $e) {
             return new TaskResource(false, 'Gagal mereset tugas siswa.', null);
         }
+    }
+
+
+    public function recapByClassAndSubject(Request $request)
+    {
+        // Mendapatkan guru yang sedang login
+        $teacher = auth()->user();
+
+        // Validasi input
+        $request->validate([
+            'class_id' => 'required|exists:App\Models\StudentClass,id',
+        ]);
+
+        // Ambil data dari request
+        $classId = $request->input('class_id');
+
+        // Query untuk mendapatkan tugas berdasarkan kelas dan guru yang sedang login
+        $tasks = Task::where('class_id', $classId)
+            ->where('creator_id', $teacher->id)
+            ->with(['studentTasks' => function ($query) {
+                $query->select('task_id', 'student_id', 'score');
+            }])
+            ->join('users', 'tasks.creator_id', '=', 'users.id')
+            ->select('tasks.*', 'users.nomor_absen')
+            ->get();
+
+        // Mengatur format data yang akan dikembalikan
+        $formattedTasks = $tasks->map(function ($task) {
+            return [
+                'no_absen' => $task->nomor_absen,
+                'nama' => $task->title,
+                'tugas' => $task->studentTasks->pluck('score')->toArray(),
+            ];
+        });
+
+        // Membuat response dengan status dan data
+        $response = [
+            'status' => 'success',
+            'message' => 'Tasks recap by class and subject retrieved successfully',
+            'data' => $formattedTasks,
+        ];
+
+        // Mengembalikan response
+        return response()->json($response);
     }
 
 

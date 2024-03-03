@@ -1,12 +1,9 @@
 <template>
-
-<!-- fitur ini sedang dijeda dikarenakan error yang tidak diketahui. -->
-
   <div v-if="role === 'guru' || role === 'admin' || role === 'pengurus_kelas'">
     <div class="mt-2 ml-3 flex">
-      <router-link :to="{ name: 'task' }" class="btn btn-outline mr-3 text-black hover:text-white">
+      <button @click="goBack" class="btn btn-outline mr-3 text-black hover:text-white">
         <font-awesome-icon icon="arrow-left" class="text-xl" />
-      </router-link>
+      </button>
       <h1 class="text-2xl font-bold pt-2">Update Tugas</h1>
     </div>
     <div>
@@ -219,6 +216,9 @@ export default {
     VueDatePicker
   },
   methods: {
+    goBack() {
+      this.$router.go(-1)
+    },
     formatDeadline(deadline) {
       const deadlineDate = new Date(deadline)
       return deadlineDate.toISOString().slice(0, 16) // Format to YYYY-MM-DDTHH:mm
@@ -226,7 +226,7 @@ export default {
     async fetchTeachers() {
       this.loadingTeacherData = true
       try {
-        const response = await api.get('http://127.0.0.1:8000/api/getTeacherData')
+        const response = await api.get('/api/getTeacherData')
         this.teachers = response.data.data
         this.loadingTeacherData = false
       } catch (error) {
@@ -289,28 +289,22 @@ export default {
     async updateTask() {
       this.loadingButton = true
       try {
-        const requestData = {
-          title: this.formData.title,
-          description: this.formData.description,
-          deadline: this.formData.deadline,
-          class_id: this.formData.class_id,
-          link: this.formData.link,
-          teacher_id: this.formData.teacher_id
-        }
+        const formData2 = new FormData()
+        formData2.append('title', this.formData.title)
+        formData2.append('description', this.formData.description)
+        formData2.append('deadline', this.formData.deadline)
+        formData2.append('class_id', this.formData.class_id)
+        formData2.append('teacher_id', this.formData.teacher_id)
 
         if (this.formData.file) {
-          requestData.file = this.formData.file
+          formData2.append('file', this.formData.file)
         }
 
         if (this.formData.link) {
-          requestData.link = this.formData.link
+          formData2.append('link', this.formData.link)
         }
 
-        const response = await api.put(`/api/tasks/${this.taskId}/update`, requestData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        })
+        const response = await api.put(`/api/tasks/${this.taskId}/update`, formData2)
 
         this.toast.success('Tugas Berhasil Diupdate', {
           position: 'top-center',
@@ -344,7 +338,6 @@ export default {
         this.loadingButton = false
       }
     },
-
     handleDeadlineChange(newDate) {
       // Cek apakah newDate tidak nol
       if (newDate) {

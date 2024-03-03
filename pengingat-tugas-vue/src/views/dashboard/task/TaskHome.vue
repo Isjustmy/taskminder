@@ -52,6 +52,45 @@
         >Tambah Tugas Baru</router-link
       >
     </div>
+    <div class="overflow-x-auto ml-2 mt-6">
+      <table class="table">
+        <!-- head -->
+        <thead class="text-[15px] text-gray-600 font-bold">
+          <tr>
+            <th class="w-[15%] text-wrap">Judul Tugas</th>
+            <th class="w-[20%] text-wrap">Deskripsi</th>
+            <th class="w-[15%] text-center">Kelas</th>
+            <th class="w-[15%] text-center text-wrap">Guru Pembuat Tugas</th>
+            <th class="w-[15%] text-center text-wrap">Tanggal Pembuatan</th>
+            <th class="w-[15%] text-center">Batas Waktu</th>
+            <th class="w-[5%] text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody v-if="teacherTasks && teacherTasks.length > 0">
+          <!-- Data tugas -->
+          <tr v-for="task in teacherTasks" :key="task.id">
+              <td class="text-wrap">{{ task.title }}</td>
+              <td class="text-wrap truncate-description">{{ task.description }}</td>
+              <td class="text-center">{{ task.class.class_name }}</td>
+              <td>tess</td>
+              <td class="text-center">{{ task.created_at }}</td>
+              <td class="text-center">{{ task.deadline }}</td>
+              <td>
+                <router-link class="btn btn-neutral text-white" :to="{ name: 'task_detail', params: { taskId: task.id } }">Detail</router-link>
+              </td>
+          </tr>
+          <!-- Akhir data tugas -->
+        </tbody>
+        <tbody v-else-if="loadingData === true">
+          <td colspan="6" class="text-center text-[16px]">Memuat...</td>
+        </tbody>
+        <tbody v-else>
+          <tr>
+            <td colspan="6" class="text-center text-[16px]">Tidak ada data tugas</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 

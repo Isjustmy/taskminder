@@ -8,7 +8,7 @@
         <font-awesome-icon icon="arrow-left" />
       </router-link>
       <h1 class="mb-4 text-2xl font-bold text-center absolute ml-20 mt-5 text-gray-700">
-        Detail Data Tugas
+        Detail Tugas
       </h1>
       <div class="flex ml-[390px] mt-3">
         <router-link
@@ -20,7 +20,7 @@
           class="btn text-white text-[15px]"
           :class="{ 'btn-success': !loadingTitle, 'btn-active btn-ghost': loadingTitle }"
         >
-          Submit Tugas Ini
+          {{ detailedTasks.is_submitted === 1 ? 'Submit Ulang Tugas Ini' : 'Submit Tugas Ini' }}
         </router-link>
 
         <div v-if="isSiswaWithPengurusKelas">
@@ -77,6 +77,26 @@
               </p>
             </div>
           </div>
+          <!-- Informasi Submit Tugas -->
+          <div class="flex mt-6" v-if="detailedTasks.is_submitted === 1">
+            <div class="font-bold text-lg w-[30%]">
+              <h1>Data Submit Tugas dan Nilai Anda</h1>
+            </div>
+            <div class="ml-4 w-[70%] text-wrap content-end text-justify flex">
+              <p class="font-bold text-lg">:</p>
+              <p class="ml-2 mt-1">
+                <router-link
+                  :to="{
+                    name: 'task_student_submit_detail',
+                    params: { taskStudentId: taskStudentId }
+                  }"
+                  class="btn btn-outline"
+                >
+                  Lihat Disini
+                </router-link>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
       <div id="sub-container2" class="w-1/2">
@@ -117,8 +137,13 @@
     </div>
     <dialog id="image-modal" class="modal">
       <div class="modal-box">
-        <span class="close" @click="closeImageModal">&times;</span>
-        <img :src="fullImagePath" alt="Full Image" />
+        <span style="font-size: 14px; cursor: pointer; position: absolute; top: 10px; right: 10px">
+          <button @click="openImageInNewTab" class="close btn btn-primary mr-4 text-white">
+            Buka Gambar di Tab Baru
+          </button>
+          <button @click="closeImageModal" class="btn btn-neutral text-white">Tutup</button>
+        </span>
+        <img :src="fullImagePath" alt="Full Image" class="mt-10" />
       </div>
     </dialog>
   </div>
@@ -160,6 +185,44 @@ export default {
     this.imageModal = document.getElementById('image-modal')
   },
   methods: {
+    formatDate(date) {
+      // Ubah tanggal menjadi objek Date
+      const formattedDate = new Date(date)
+
+      // Daftar nama bulan dalam bahasa Indonesia
+      const monthNames = [
+        'Januari',
+        'Februari',
+        'Maret',
+        'April',
+        'Mei',
+        'Juni',
+        'Juli',
+        'Agustus',
+        'September',
+        'Oktober',
+        'November',
+        'Desember'
+      ]
+
+      // Ambil tanggal, bulan, dan tahun
+      const day = String(formattedDate.getDate()).padStart(2, '0')
+      const monthIndex = formattedDate.getMonth()
+      const year = formattedDate.getFullYear()
+
+      // Ambil jam, menit, dan detik
+      const hour = String(formattedDate.getHours()).padStart(2, '0')
+      const minute = String(formattedDate.getMinutes()).padStart(2, '0')
+      const second = String(formattedDate.getSeconds()).padStart(2, '0')
+
+      // Gabungkan menjadi format yang diinginkan
+      const formattedDateTime = `${day} ${monthNames[monthIndex]} ${year}, ${hour}:${minute}:${second}`
+
+      return formattedDateTime
+    },
+    openImageInNewTab() {
+      window.open(this.fullImagePath, '_blank')
+    },
     openImageModal() {
       // Set path gambar penuh
       this.fullImagePath = this.detailedTasks.file_path
@@ -185,14 +248,17 @@ export default {
         this.loadingDataTasks = false
         this.loadingTitle = false
         const task = response.data.tasks[0] // Ambil data tugas dari array tasks
+        const submitData = response.data.additional_data
+        const formattedDeadline = this.formatDate(task.deadline)
         this.detailedTasks = {
           // Masukkan data tugas ke dalam objek detailedTasks
           title: task.title,
           description: task.description,
           file_path: task.file_path,
           link: task.link,
-          deadline: task.deadline,
-          mata_pelajaran: task.mata_pelajaran
+          deadline: formattedDeadline,
+          mata_pelajaran: task.mata_pelajaran,
+          is_submitted: submitData.is_submitted
         }
         sessionStorage.setItem('taskTitle', this.detailedTasks.title)
       } catch (error) {

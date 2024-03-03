@@ -24,6 +24,133 @@ use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
+    public function getAdminUsers()
+    {
+        try {
+            $users = User::role('admin')->paginate(5);
+            if ($users->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data admin tidak ditemukan.',
+                    'data' => []
+                ]);
+            }
+
+            // Menghilangkan student_class_id dari setiap pengguna
+            foreach ($users->items() as $user) {
+                unset($user->student_class_id);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data admin berhasil diambil.',
+                'data' => $users
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil data admin.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getGuruUsers()
+    {
+        try {
+            $users = User::role('guru')->paginate(5);
+            if ($users->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data guru tidak ditemukan.',
+                    'data' => []
+                ]);
+            }
+
+            // Menghilangkan student_class_id dari setiap pengguna
+            foreach ($users->items() as $user) {
+                unset($user->student_class_id);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data guru berhasil diambil.',
+                'data' => $users
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil data guru.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function getSiswaUsers()
+    {
+        try {
+            $users = User::role('siswa')->with('studentClass')->paginate(5);
+            if ($users->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data siswa tidak ditemukan.',
+                    'data' => []
+                ]);
+            }
+
+            // Menghilangkan student_class_id dari setiap pengguna
+            foreach ($users->items() as $user) {
+                unset($user->student_class_id);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data siswa berhasil diambil.',
+                'data' => $users
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil data siswa.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function getPengurusKelasUsers()
+    {
+        try {
+            $users = User::role('pengurus_kelas')->with('studentClass')->paginate(5);
+            if ($users->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data pengurus kelas tidak ditemukan.',
+                    'data' => []
+                ]);
+            }
+
+            // Menghilangkan student_class_id dari setiap pengguna
+            foreach ($users->items() as $user) {
+                unset($user->student_class_id);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data pengurus kelas berhasil diambil.',
+                'data' => $users
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil data pengurus kelas.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
     public function getClassAndSubjects(Request $request)
     {
         try {
@@ -206,12 +333,35 @@ class UserController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'nomor_absen' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|unique:users,nomor_absen,NULL,id,student_class_id,' . $request->class_id : 'nullable',
+            'nomor_absen' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|integer|unique:users,nomor_absen,NULL,id,student_class_id,' . $request->class_id : 'nullable',
             'name' => 'required|min:3',
-            'email' => 'required|unique:users',
+            'email' => [
+                'required',
+                'unique:users',
+                function ($attribute, $value, $fail) {
+                    // Lakukan validasi menggunakan regex untuk memastikan alamat email sesuai format
+                    if (!preg_match('/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/', $value)) {
+                        $fail('Format email tidak valid.');
+                    }
+                },
+            ],
             'password' => 'required|confirmed',
             'roles' => 'required',
-            'phone_number' => 'required|numeric|unique:users,phone_number,',
+            'phone_number' => [
+                'required',
+                'regex:/^(08|\+62|\+\d{1,15})\d{9,13}$/',
+                function ($attribute, $value, $fail) {
+                    // Mengeksekusi kueri untuk memeriksa apakah nomor telepon ada dalam format yang sesuai di database
+                    if (User::where('phone_number', $value)
+                        ->orWhere('phone_number', '+62' . ltrim($value, '0'))
+                        ->orWhere('phone_number', '+' . ltrim($value, '0'))
+                        ->exists()
+                    ) {
+                        // Jika nomor telepon sudah ada dalam format yang sesuai di database, kirim pesan kesalahan
+                        $fail('Nomor Telepon sudah ada sebelumnya.');
+                    }
+                },
+            ],
             'class_id' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|exists:student_classes,id' : 'nullable',
             'nisn' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|min:10' : 'nullable',
             'nip' => (in_array('guru', $roles)) ? 'required|min:10' : 'nullable',
@@ -220,6 +370,14 @@ class UserController extends Controller
             'nomor_absen.required' => 'Nomor Absen wajib diisi untuk peran Siswa atau Pengurus Kelas.',
             'nomor_absen.integer' => 'Nomor Absen harus berupa angka.',
             'nomor_absen.unique' => 'Nomor Absen sudah digunakan.',
+
+            'nisn.required' => 'NISN wajib diisi.',
+            'nisn.min' => 'NISN harus terdiri dari minimal :min karakter.',
+            'nisn.unique' => 'NISN sudah digunakan.',
+
+            'nip.required' => 'NIP wajib diisi.',
+            'nip.min' => 'NIP harus terdiri dari minimal :min karakter.',
+            'nip.unique' => 'NIP sudah digunakan.',
 
             'name.required' => 'Nama wajib diisi.',
 
@@ -245,6 +403,18 @@ class UserController extends Controller
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
+        }
+
+        // Mendapatkan nomor telepon dari input
+        $phoneNumber = $request->phone_number;
+
+        // Proses untuk mengubah nomor telepon ke format internasional
+        if (preg_match('/^08/', $phoneNumber)) {
+            // Jika nomor telepon dimulai dengan '08', ubah ke format internasional
+            $formattedPhoneNumber = '+62' . substr($phoneNumber, 1);
+        } else {
+            // Jika nomor telepon tidak dimulai dengan '08', tetap gunakan nomor telepon yang sama
+            $formattedPhoneNumber = $phoneNumber;
         }
 
         // Periksa apakah request roles memuat peran admin
@@ -275,21 +445,33 @@ class UserController extends Controller
                     return response()->json(['error' => 'Akun dengan NIP yang dimasukkan sudah ada sebelumnya.'], 422);
                 }
             }
+        } else {
+            if (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) {
+                $studentIdentifier = StudentIdentifier::where('nisn', $request->nisn)->first();
+                if ($studentIdentifier && $studentIdentifier->student_id) {
+                    return response()->json(['error' => 'Akun dengan NISN yang dimasukkan sudah ada sebelumnya.'], 422);
+                }
+            } elseif (in_array('guru', $roles)) {
+                $teacherIdentifier = TeacherIdentifier::where('nip', $request->nip)->first();
+                if ($teacherIdentifier && $teacherIdentifier->teacher_id) {
+                    return response()->json(['error' => 'Akun dengan NIP yang dimasukkan sudah ada sebelumnya.'], 422);
+                }
+            }
         }
-
+ 
         // Buat user
         $user = User::create([
             'nomor_absen' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? $request->nomor_absen : null,
             'name' => $request->name,
             'email' => $request->email,
             'password' => bcrypt($request->password),
-            'phone_number' => $request->phone_number,
+            'phone_number' => $formattedPhoneNumber,
             'student_class_id' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? $request->class_id : null,
             'guru_mata_pelajaran' => (in_array('guru', $roles)) ? $request->guru_mata_pelajaran : null,
         ]);
 
         // Assign roles to user
-        $user->assignRole($request->roles);
+        $user->assignRole($roles);
 
         if (!$userAuth && !$isUserAdmin) {
             // Update NISN and nip with user_id based on roles
@@ -418,7 +600,18 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'nomor_absen' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|integer' : 'nullable',
             'name' => 'required',
-            'email' => 'required',
+            'email' => [
+                'required',
+                'unique:users',
+                function ($attribute, $value, $fail) {
+                    // Lakukan validasi menggunakan regex untuk memastikan alamat email sesuai format
+                    if (!preg_match('/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/', $value)) {
+                        $fail('Format email tidak valid.');
+                    }
+                },
+            ],
+            'nisn' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|min:10|unique:student_identifiers,nisn' : 'nullable',
+            'nip' => (in_array('guru', $roles)) ? 'required|min:10|unique:teacher_identifiers,nip' : 'nullable',
             'password' => 'nullable|confirmed',
             'roles' => 'required',
             'phone_number' => 'required|numeric',
@@ -427,6 +620,15 @@ class UserController extends Controller
         ], [
             'nomor_absen.required' => 'Nomor Absen wajib diisi untuk peran Siswa atau Pengurus Kelas.',
             'nomor_absen.integer' => 'Nomor Absen harus berupa angka.',
+            'nomor_absen.unique' => 'Nomor Absen sudah digunakan.',
+
+            'nisn.required' => 'NISN wajib diisi.',
+            'nisn.min' => 'NISN harus terdiri dari minimal :min karakter.',
+            'nisn.unique' => 'NISN sudah digunakan.',
+
+            'nip.required' => 'NIP wajib diisi.',
+            'nip.min' => 'NIP harus terdiri dari minimal :min karakter.',
+            'nip.unique' => 'NIP sudah digunakan.',
 
             'name.required' => 'Nama wajib diisi.',
 
@@ -549,47 +751,5 @@ class UserController extends Controller
 
         // Return failed with Api Resource
         return new UserResource(false, 'Data User Gagal Dihapus!', null);
-    }
-
-
-    public function sendResetLink(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()->first()], 422);
-        }
-
-        $response = Password::sendResetLink($request->only('email'));
-
-        return $response === Password::RESET_LINK_SENT
-                    ? response()->json(['message' => 'Reset password link sent to your email address.'], 200)
-                    : response()->json(['error' => 'Unable to send reset password link.'], 500);
-    }
-
-    public function resetPassword(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'token' => 'required|string',
-            'password' => 'required|string|confirmed',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()->first()], 422);
-        }
-
-        $response = Password::reset($request->only(
-            'email', 'password', 'password_confirmation', 'token'
-        ), function ($user, $password) {
-            $user->password = bcrypt($password);
-            $user->save();
-        });
-
-        return $response === Password::PASSWORD_RESET
-                    ? response()->json(['message' => 'Password has been reset successfully.'], 200)
-                    : response()->json(['error' => 'Unable to reset password.'], 500);
     }
 }

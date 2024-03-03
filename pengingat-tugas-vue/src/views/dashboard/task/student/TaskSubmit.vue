@@ -1,9 +1,13 @@
 <template>
   <div v-if="role === 'siswa' || role === 'pengurus_kelas'" class="">
     <div class="mt-4 ml-4 flex">
-      <h1 class="text-2xl font-bold">Submit Tugas Untuk "{{ taskTitle }}"</h1>
+      <button @click="goBack" class="btn btn-neutral text-white hover:bg-white hover:text-black">
+        <font-awesome-icon icon="arrow-left" />
+        Kembali
+      </button>
+      <h1 class="text-2xl font-bold mt-2 ml-8">Submit Tugas Untuk "{{ taskTitle }}"</h1>
     </div>
-    <div class="flex border ml-1 mx-4 mt-7">
+    <div class="flex ml-1 mx-4 mt-7">
       <div class="w-1/2 px-5">
         <div>
           <label class="block flex text-lg font-bold"> Lampiran </label>
@@ -31,9 +35,35 @@
       <div class="w-1/2 px-5">
         <div class="">
           <h1 class="text-lg font-bold">Link</h1>
-          <input type="text" class="input input-bordered w-full max-w-xs overflow-x-auto" />
+          <input
+            type="text"
+            class="input input-bordered w-full max-w-xs overflow-x-auto"
+            v-model="link"
+          />
         </div>
-        <button class="btn btn-success mt-8">Submit Tugas</button>
+        <button v-if="!loadingSend" class="btn btn-success mt-8 text-white" @click="submitTask">
+          Submit Tugas
+        </button>
+        <button v-if="loadingSend" class="btn mt-8 text-black" aria-disabled="true">
+          <svg
+            aria-hidden="true"
+            role="status"
+            class="inline mr-3 w-4 h-4 text-black animate-spin"
+            viewBox="0 0 100 101"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+              fill="#E5E7EB"
+            ></path>
+            <path
+              d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+              fill="currentColor"
+            ></path>
+          </svg>
+          Sedang Memproses...
+        </button>
       </div>
     </div>
   </div>
@@ -59,10 +89,12 @@ export default {
     return {
       user: {},
       role: '',
-      selectedFile: null,
+      selectedFiles: null,
       imagePreviewUrl: '',
       fullImageUrl: '',
-      taskTitle: ''
+      taskTitle: '',
+      link: '',
+      loadingSend: false
     }
   },
   computed: {
@@ -74,16 +106,19 @@ export default {
       return this.$route.params.taskStudentId
     },
     selectedFileName() {
-      return this.selectedFile ? this.selectedFile.name : ''
+      return this.selectedFiles ? this.selectedFiles.name : ''
     },
     isImageFile() {
-      return this.selectedFile ? this.selectedFile.type.startsWith('image/') : false
+      return this.selectedFiles ? this.selectedFiles.type.startsWith('image/') : false
     }
   },
   methods: {
+    goBack() {
+      this.$router.go(-1)
+    },
     handleFileChange(event) {
       const selectedFile = event.target.files[0]
-      this.selectedFile = selectedFile
+      this.selectedFiles = selectedFile
       if (this.isImageFile) {
         this.createImagePreviewUrl(selectedFile)
       } else {
@@ -118,6 +153,51 @@ export default {
           position: 'top-center',
           timeout: 3000
         })
+      }
+    },
+    async submitTask() {
+      this.loadingSend = true
+      try {
+        const formData = new FormData()
+        formData.append('file', this.selectedFiles)
+        formData.append('link', this.link)
+
+        const response = await api({
+          method: 'post',
+          url: `/api/tasks/${this.taskStudentId}/submit`,
+          data: formData,
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+        
+        const data = response.data
+        if (data.success) {
+          const toast = useToast()
+          toast.success(data.message, {
+            position: 'top-center',
+            timeout: 3000
+          })
+          this.$router.push({ name: 'task_student_list' })
+          this.loadingSend = false
+        } else {
+          this.loadingSend = false
+          const toast = useToast()
+          toast.error(data.message, {
+            position: 'top-center',
+            timeout: 3000
+          })
+        }
+      } catch (error) {
+        this.loadingSend = false
+        console.error('Failed to submit task:', error)
+        const toast = useToast()
+        toast.error('Gagal mengirimkan tugas. Silakan coba lagi.', {
+          position: 'top-center',
+          timeout: 3000
+        })
+      } finally {
+        this.loadingSend = false
       }
     }
   },

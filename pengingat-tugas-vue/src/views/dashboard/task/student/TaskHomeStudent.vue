@@ -2,7 +2,10 @@
   <div v-if="role === 'siswa' || role === 'pengurus_kelas'">
     <div class="ml-4 mb-7 flex">
       <h1 class="pt-2 text-2xl font-bold">Tugas Anda</h1>
-      <router-link v-if="isSiswaWithPengurusKelas" :to="{ name: 'task_student_create' }" class="btn btn-success text-white ml-12"
+      <router-link
+        v-if="isSiswaWithPengurusKelas"
+        :to="{ name: 'task_create' }"
+        class="btn btn-success text-white ml-12"
         >Tambah Tugas Baru</router-link
       >
     </div>
@@ -35,7 +38,9 @@
             <th class="text-[14px] w-[10%]">Judul</th>
             <th class="text-[14px] text-wrap w-[15%]">Deskripsi</th>
             <th class="text-[14px] w-[10%] text-center">Mata Pelajaran</th>
-            <th class="text-[14px] w-[8%] text-center">Deadline</th>
+            <th class="text-[14px] w-[15%] text-center">Deadline</th>
+            <th class="text-[14px] text-wrap w-[8%] text-center">Telah Dikerjakan</th>
+            <th class="text-[14px] text-wrap w-[8%] text-center">Terlambat Mengerjakan</th>
             <th class="text-[14px] w-[10%] text-center">Aksi</th>
           </tr>
         </thead>
@@ -47,7 +52,19 @@
             <td class="text-[15px] text-center">{{ task.mata_pelajaran }}</td>
             <td class="text-[15px] text-center">{{ formatDate(task.deadline) }}</td>
             <td class="text-[15px] text-center">
-              <router-link class="btn btn-neutral text-white" :to="{ name: 'task_student_detail', params: { taskStudentId: task.id } }">Detail</router-link>
+              {{ task.submission_info[0].is_submitted ? 'Ya' : 'Tidak' }}
+            </td>
+            <!-- Tampilkan informasi telah dikumpulkan atau belum -->
+            <td class="text-[15px] text-center">
+              {{ task.submission_info[0].is_late === 'yes' ? 'Ya' : 'Tidak' }}
+            </td>
+            <!-- Tampilkan informasi terlambat mengerjakan atau belum -->
+            <td class="text-[15px] text-center">
+              <router-link
+                class="btn btn-neutral text-white"
+                :to="{ name: 'task_student_detail', params: { taskStudentId: task.id } }"
+                >Detail</router-link
+              >
             </td>
           </tr>
         </tbody>
@@ -97,27 +114,27 @@ export default {
     filterTasks() {
       // Salin tugas-tugas yang ada ke dalam filteredTasks
       this.filteredTasks = this.tasks.slice()
-      
+
       // Filter berdasarkan judul
       if (this.searchTerm) {
-        this.filteredTasks = this.filteredTasks.filter(task =>
+        this.filteredTasks = this.filteredTasks.filter((task) =>
           task.title.toLowerCase().includes(this.searchTerm.toLowerCase())
         )
       }
-      
+
       // Filter berdasarkan mata pelajaran
       if (this.selectedSubject) {
-        this.filteredTasks = this.filteredTasks.filter(task =>
-          task.mata_pelajaran === this.selectedSubject
+        this.filteredTasks = this.filteredTasks.filter(
+          (task) => task.mata_pelajaran === this.selectedSubject
         )
       }
-      
+
       // Filter berdasarkan deadline mendekati
       if (this.selectedDeadline === 'near') {
         const currentDate = new Date()
         const nextWeek = new Date(currentDate.getTime() + 7 * 24 * 60 * 60 * 1000)
-        this.filteredTasks = this.filteredTasks.filter(task =>
-          new Date(task.deadline) <= nextWeek
+        this.filteredTasks = this.filteredTasks.filter(
+          (task) => new Date(task.deadline) <= nextWeek
         )
       }
     },
@@ -140,9 +157,25 @@ export default {
       // Ubah tanggal menjadi objek Date
       const formattedDate = new Date(date)
 
+      // Daftar nama bulan dalam bahasa Indonesia
+      const monthNames = [
+        'Januari',
+        'Februari',
+        'Maret',
+        'April',
+        'Mei',
+        'Juni',
+        'Juli',
+        'Agustus',
+        'September',
+        'Oktober',
+        'November',
+        'Desember'
+      ]
+
       // Ambil tanggal, bulan, dan tahun
       const day = String(formattedDate.getDate()).padStart(2, '0')
-      const month = String(formattedDate.getMonth() + 1).padStart(2, '0')
+      const monthIndex = formattedDate.getMonth()
       const year = formattedDate.getFullYear()
 
       // Ambil jam, menit, dan detik
@@ -151,7 +184,7 @@ export default {
       const second = String(formattedDate.getSeconds()).padStart(2, '0')
 
       // Gabungkan menjadi format yang diinginkan
-      const formattedDateTime = `${day}-${month}-${year} ${hour}:${minute}:${second}`
+      const formattedDateTime = `${day} ${monthNames[monthIndex]} ${year}, ${hour}:${minute}:${second}`
 
       return formattedDateTime
     }
@@ -172,7 +205,7 @@ export default {
     searchTerm: 'filterTasks',
     selectedSubject: 'filterTasks',
     selectedDeadline: 'filterTasks'
-  },
+  }
 }
 </script>
 

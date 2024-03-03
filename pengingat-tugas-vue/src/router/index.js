@@ -11,22 +11,30 @@ import TaskUpdate from '@/views/dashboard/task/TaskUpdate.vue'
 import TaskDetail from '@/views/dashboard/task/TaskDetail.vue'
 import TaskHomeStudent from '@/views/dashboard/task/student/TaskHomeStudent.vue'
 import TaskDetailStudent from '@/views/dashboard/task/student/TaskDetailStudent.vue'
-import TaskCreateStudent from '@/views/dashboard/task/student/TaskCreateStudent.vue'
 import TaskSubmit from '@/views/dashboard/task/student/TaskSubmit.vue'
+import TaskSubmitDetail from '@/views/dashboard/task/student/TaskSubmitDetail.vue'
 import { isLoggedIn } from '@/auth/auth.js'
 import Register from '@/views/RegisterPage.vue'
 import { useToast } from 'vue-toastification'
 import UserHome from '@/views/dashboard/user/UserHome.vue'
+import UserSiswa from '@/views/dashboard/user/siswa/UserSiswa.vue'
+import UserPengurusKelas from '@/views/dashboard/user/pengurus_kelas/UserPengurusKelas.vue'
+import UserGuru from '@/views/dashboard/user/guru/UserGuru.vue'
+import UserAdmin from '@/views/dashboard/user/admin/UserAdmin.vue'
 import UserCreate from '@/views/dashboard/user/UserCreate.vue'
 import UserUpdate from '@/views/dashboard/user/UserUpdate.vue'
 import CalendarHome from '@/views/dashboard/calendar/CalendarHome.vue'
+import TambahPenanda from '@/views/dashboard/calendar/TambahPenanda.vue'
+import TesLayout from '@/layouts/TesLayout.vue'
 import Cookies from 'js-cookie'
+import RekapitulasiHome from '@/views/dashboard/rekapitulasi/RekapitulasiHome.vue'
 
 const routes = [
   { path: '', name: 'landing', component: LandingPage },
+  { path: '/layout', name: 'layout', component: TesLayout },
   {
     path: '/dashboard',
-    component: MainLayout,
+    component: TesLayout,
     name: 'dashboard',
     meta: { requiresAuth: true },
     children: [
@@ -40,9 +48,27 @@ const routes = [
 
       // grup route user
       {
-        path: 'user',
-        name: 'user',
-        component: UserHome,
+        path: 'user/admin',
+        name: 'user_admin',
+        component: UserAdmin,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'user/guru',
+        name: 'user_guru',
+        component: UserGuru,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'user/siswa',
+        name: 'user_siswa',
+        component: UserSiswa,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'user/pengurus_kelas',
+        name: 'user_pengurus_kelas',
+        component: UserPengurusKelas,
         meta: { requiresAuth: true }
       },
       {
@@ -92,6 +118,12 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
+        path: 'task/student/submit_detail/:taskStudentId',
+        name: 'task_student_submit_detail',
+        component: TaskSubmitDetail,
+        meta: { requiresAuth: true }
+      },
+      {
         path: 'task/student/submit/:taskStudentId',
         name: 'task_student_submit',
         component: TaskSubmit,
@@ -105,18 +137,25 @@ const routes = [
           next()
         }
       },
-      {
-        path: 'task/student/create',
-        name: 'task_student_create',
-        component: TaskCreateStudent,
-        meta: { requiresAuth: true }
-      },
 
       //group route calendar
       {
         path: 'calendar',
         name: 'calendar_home',
         component: CalendarHome,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'calendar/create',
+        name: 'calendar_create',
+        component: TambahPenanda,
+        meta: { requiresAuth: true }
+      },
+
+      {
+        path: 'recap',
+        name: 'rekapitulasi',
+        component: RekapitulasiHome,
         meta: { requiresAuth: true }
       }
     ]
@@ -132,6 +171,16 @@ const router = createRouter({
 })
 
 const toast = useToast()
+
+router.afterEach((to, from, failure) => {
+  if (!failure) {
+    setTimeout(() => {
+      if (window.HSStaticMethods) {
+        window.HSStaticMethods.autoInit();
+      }
+    }, 100)
+  }
+})
 
 router.beforeEach((to, from, next) => {
   // Check if the route requires authentication

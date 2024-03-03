@@ -2,13 +2,13 @@
   <div>
     <div class="">
       <div class="flex flex-col md:flex-row">
-        <router-link
-          :to="{ name: 'user' }"
+        <button
+          @click="goBack"
           class="btn btn-neutral text-white absolute ml-3 mt-3 hover:bg-white hover:text-black"
         >
           <font-awesome-icon icon="arrow-left" />
           Kembali
-        </router-link>
+        </button>
         <h1 class="mb-4 text-3xl font-bold text-center absolute ml-[150px] mt-4 text-gray-700">
           Update User
         </h1>
@@ -309,6 +309,9 @@ export default {
     }
   },
   methods: {
+    goBack() {
+      this.$router.go(-1)
+    },
     async fetchUserData() {
       this.loading = true
       this.loadingButtonData = true

@@ -11,6 +11,8 @@ import Toast from 'vue-toastification'
 import "vue-toastification/dist/index.css";
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css'
+import VueCollapsiblePanel from '@dafcoe/vue-collapsible-panel'
+import "preline/preline";
 
 
 library.add(fas, far, fab)
@@ -21,6 +23,7 @@ import router from './router'
 const app = createApp(App)
 
 app.use(Toast)
+app.use(VueCollapsiblePanel)
 
 app.component("font-awesome-icon", FontAwesomeIcon)
 app.component('VueDatePicker', VueDatePicker)

@@ -15,7 +15,16 @@ class LoginController extends Controller
     {
         // set validasi
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
+            'email' => [
+                'required',
+                'email',
+                function ($attribute, $value, $fail) {
+                    // Lakukan validasi menggunakan regex untuk memastikan alamat email sesuai format
+                    if (!preg_match('/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/', $value)) {
+                        $fail('Format email tidak valid.');
+                    }
+                },
+            ],
             'password' => 'required',
         ], [
             'email.required' => 'Email wajib diisi.',
