@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Mail\Message;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -55,46 +57,59 @@ class UserController extends Controller
         }
     }
 
-    public function getGuruUsers()
+
+    public function getTeacherData(Request $request)
     {
+        // Memeriksa apakah parameter mata pelajaran disertakan dalam permintaan
+        if (!$request->has('subject')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mata pelajaran (subject) diperlukan pada request untuk mendapatkan data guru.',
+            ], 400);
+        }
+
         try {
-            $users = User::role('guru')->paginate(5);
-            if ($users->isEmpty()) {
+            // Mendapatkan semua user yang memiliki peran "guru" dengan mata pelajaran yang sesuai
+            $subject = $request->input('subject');
+            $teachers = User::whereHas('roles', function ($query) {
+                $query->where('name', 'guru');
+            })->where('guru_mata_pelajaran', $subject)->select('id', 'name', 'email', 'phone_number',  'guru_mata_pelajaran')->get();
+
+            // Memeriksa apakah ada data guru yang ditemukan
+            if ($teachers->isEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data guru tidak ditemukan.',
-                    'data' => []
-                ]);
+                    'message' => 'Data guru dengan mata pelajaran ' . $subject . ' tidak ditemukan.',
+                ], 404);
             }
 
-            // Menghilangkan student_class_id dari setiap pengguna
-            foreach ($users->items() as $user) {
-                unset($user->student_class_id);
-            }
-
+            // Mengirimkan data guru jika berhasil ditemukan
             return response()->json([
                 'success' => true,
-                'message' => 'Data guru berhasil diambil.',
-                'data' => $users
-            ]);
+                'message' => 'Data guru dengan mata pelajaran ' . $subject . ' berhasil ditemukan.',
+                'data' => $teachers,
+            ], 200);
         } catch (\Exception $e) {
+            // Menangani kesalahan jika terjadi
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat mengambil data guru.',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
 
-    public function getSiswaUsers()
+    public function getSiswaUsers($classId)
     {
         try {
-            $users = User::role('siswa')->with('studentClass')->paginate(5);
+            // Retrieve student users based on the class ID
+            $users = User::role('siswa')->where('student_class_id', $classId)->with('studentClass')->paginate(5);
+
             if ($users->isEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data siswa tidak ditemukan.',
+                    'message' => 'Data siswa tidak ditemukan untuk kelas yang dipilih.',
                     'data' => []
                 ]);
             }
@@ -106,7 +121,7 @@ class UserController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Data siswa berhasil diambil.',
+                'message' => 'Data siswa berhasil diambil untuk kelas yang dipilih.',
                 'data' => $users
             ]);
         } catch (\Exception $e) {
@@ -186,37 +201,6 @@ class UserController extends Controller
         }
     }
 
-    function getTeacherData()
-    {
-        try {
-            // Mendapatkan semua user yang memiliki peran "guru"
-            $teachers = User::whereHas('roles', function ($query) {
-                $query->where('name', 'guru');
-            })->select('id', 'name', 'guru_mata_pelajaran')->get();
-
-            // Memeriksa apakah ada data guru yang ditemukan
-            if ($teachers->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Data guru tidak ditemukan.',
-                ], 404);
-            }
-
-            // Mengirimkan data guru jika berhasil ditemukan
-            return response()->json([
-                'success' => true,
-                'message' => 'Data guru berhasil ditemukan.',
-                'data' => $teachers,
-            ], 200);
-        } catch (\Exception $e) {
-            // Menangani kesalahan jika terjadi
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan saat mengambil data guru.',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
 
     /**
      * Display a listing of users
@@ -342,10 +326,13 @@ class UserController extends Controller
                     // Lakukan validasi menggunakan regex untuk memastikan alamat email sesuai format
                     if (!preg_match('/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/', $value)) {
                         $fail('Format email tidak valid.');
+                    } elseif (!in_array(strtolower(substr(strrchr($value, '@'), 1)), ['outlook.com', 'yahoo.com', 'aol.com', 'lycos.com', 'mail.com', 'icloud.com', 'yandex.com', 'protonmail.com', 'tutanota.com', 'zoho.com', 'gmail.com'])) {
+                        // Periksa apakah domain email tidak diizinkan
+                        $fail('Domain email tidak valid.');
                     }
                 },
             ],
-            'password' => 'required|confirmed',
+            'password' => 'required|min:8|confirmed',
             'roles' => 'required',
             'phone_number' => [
                 'required',
@@ -386,6 +373,7 @@ class UserController extends Controller
             'email.unique' => 'Email sudah digunakan.',
 
             'password.required' => 'Password wajib diisi.',
+            'password.min' => 'Password minimal terdiri dari 8 kombinasi huruf, angka, atau simbol.',
             'password.confirmed' => 'Konfirmasi password tidak sesuai.',
 
             'roles.required' => 'Peran wajib diisi.',
@@ -458,7 +446,7 @@ class UserController extends Controller
                 }
             }
         }
- 
+
         // Buat user
         $user = User::create([
             'nomor_absen' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? $request->nomor_absen : null,
@@ -602,15 +590,22 @@ class UserController extends Controller
             'name' => 'required',
             'email' => [
                 'required',
-                'unique:users',
+                Rule::unique('users')->ignore($id),
                 function ($attribute, $value, $fail) {
                     // Lakukan validasi menggunakan regex untuk memastikan alamat email sesuai format
                     if (!preg_match('/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/', $value)) {
                         $fail('Format email tidak valid.');
+                    } elseif (!in_array(strtolower(substr(strrchr($value, '@'), 1)), ['outlook.com', 'yahoo.com', 'aol.com', 'lycos.com', 'mail.com', 'icloud.com', 'yandex.com', 'protonmail.com', 'tutanota.com', 'zoho.com', 'gmail.com'])) {
+                        // Periksa apakah domain email tidak diizinkan
+                        $fail('Domain email tidak valid.');
                     }
                 },
             ],
-            'nisn' => (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required|min:10|unique:student_identifiers,nisn' : 'nullable',
+            'nisn' => [
+                (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'required' : 'nullable',
+                (in_array('siswa', $roles) || in_array('pengurus_kelas', $roles)) ? 'min:10' : '',
+                Rule::unique('student_identifiers')->ignore($user->studentIdentifier ? $user->studentIdentifier->id : null),
+            ],
             'nip' => (in_array('guru', $roles)) ? 'required|min:10|unique:teacher_identifiers,nip' : 'nullable',
             'password' => 'nullable|confirmed',
             'roles' => 'required',
@@ -636,6 +631,7 @@ class UserController extends Controller
             'email.email' => 'Format email tidak valid.',
 
             'password.required' => 'Password wajib diisi.',
+            'password.min' => 'Password minimal terdiri dari 8 kombinasi huruf, angka, atau simbol.',
             'password.confirmed' => 'Konfirmasi password tidak sesuai.',
 
             'roles.required' => 'Peran wajib diisi.',
@@ -732,24 +728,54 @@ class UserController extends Controller
      */
     public function destroy($id)
     {
-        // Find the user by ID
+        $loggedInUser = auth()->user();
+
+        // Memeriksa apakah pengguna yang sedang login memiliki peran admin
+        if ($loggedInUser->hasRole('admin') && $loggedInUser->id == $id) {
+            return response()->json(['success' => false, 'message' => 'Anda tidak dapat menghapus diri sendiri!'], 400);
+        }
+
         $user = User::find($id);
 
         if (!$user) {
-            // Jika pengguna tidak ditemukan, return error
-            return new UserResource(false, 'Data User Tidak Ditemukan!', null);
+            return response()->json(['success' => false, 'message' => 'Data User Tidak Ditemukan!'], 404);
         }
 
-        // Delete related tasks
-        StudentTasks::where('student_id', $user->id)->delete();
+        if ($user->hasRole('guru')) {
+            // Menghapus data submit tugas siswa yang terkait dengan task_id dan teacher_id
+            $task = Task::where('creator_id', $user->id)->get();
 
-        // Delete the user
+            foreach ($task as $taskData) {
+                $studentTaskData = StudentTasks::where('task_id', $taskData->id)->get();
+
+                foreach ($studentTaskData as $studentTask) {
+                    if ($studentTask->file_path) {
+                        $fileName = basename($studentTask->file_path);
+                        Storage::disk('public')->delete('task_files/' . $fileName);
+                    }
+
+                    $studentTask->delete();
+                }
+
+                // Hapus file terkait jika ada
+                if ($taskData->file_path) {
+                    // Dapatkan nama file dari URL
+                    $fileName = basename($taskData->file_path);
+
+                    // Hapus file dari sistem penyimpanan berdasarkan nama file
+                    Storage::disk('public')->delete('files_from_teacher/' . $fileName);
+                }
+
+                $taskData->delete();
+            }
+        } elseif ($user->hasRole('siswa')) {
+            StudentTasks::where('student_id', $user->id)->delete();
+        }
+
         if ($user->delete()) {
-            // Return success with Api Resource
-            return new UserResource(true, 'Data User Berhasil Dihapus!', null);
+            return response()->json(['success' => true, 'message' => 'Data User Berhasil Dihapus!']);
         }
 
-        // Return failed with Api Resource
-        return new UserResource(false, 'Data User Gagal Dihapus!', null);
+        return response()->json(['success' => false, 'message' => 'Data User Gagal Dihapus!'], 500);
     }
 }

@@ -13,6 +13,8 @@ import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css'
 import VueCollapsiblePanel from '@dafcoe/vue-collapsible-panel'
 import "preline/preline";
+import VueAwesomePaginate from "vue-awesome-paginate";
+import "vue-awesome-paginate/dist/style.css";
 
 
 library.add(fas, far, fab)
@@ -24,6 +26,7 @@ const app = createApp(App)
 
 app.use(Toast)
 app.use(VueCollapsiblePanel)
+app.use(VueAwesomePaginate)
 
 app.component("font-awesome-icon", FontAwesomeIcon)
 app.component('VueDatePicker', VueDatePicker)

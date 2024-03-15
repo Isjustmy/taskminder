@@ -50,12 +50,12 @@
       <div v-if="taskTeacher.loading" class="ml-4 mt-2 text-lg mb-6">Memuat...</div>
       
       <!-- Tampilkan data tugas atau pesan jika tidak ada data tugas -->
-      <line-chart
-        v-else-if="lineChartData && lineChartData.datasets && lineChartData.datasets.length > 0"
-        :data="lineChartData"
+      <bar-chart
+        v-else-if="taskTeacher.data && taskTeacher.data.datasets && taskTeacher.data.datasets.length > 0"
+        :data="taskTeacher.data"
         :height="300"
         class="flex-shrink-0 block max-w-full p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 ml-4 mx-4"
-      ></line-chart>
+      ></bar-chart>
       <div v-else class="ml-4 mt-2 font-bold text-2xl mb-6">Tidak ada data tugas</div>
     </div>
   </div>
@@ -66,12 +66,10 @@ import Cookies from 'js-cookie'
 import api from '@/services/api'
 import { useToast } from 'vue-toastification'
 import BarChart from '@/components/BarChart.vue'
-import LineChart from '@/components/LineChart.vue'
 
 export default {
   components: {
-    BarChart,
-    LineChart
+    BarChart
   },
   data() {
     return {
@@ -81,16 +79,11 @@ export default {
         loading: true,
         data: null
       },
-      totalTasks: {
-        loading: true,
-        data: null
-      },
+      barChartData: null,
       taskTeacher: {
         loading: true,
         data: null
       },
-      barChartData: null,
-      lineChartData: null,
       toast: useToast()
     }
   },
@@ -130,19 +123,6 @@ export default {
       }
     } else if (Array.isArray(this.role) && this.role.includes('guru')) {
       await this.fetchTasks()
-
-      if (this.taskTeacher.data) {
-        this.lineChartData = {
-          labels: this.taskTeacher.data.map((task) => task.subject),
-          datasets: [
-            {
-              label: 'Jumlah Tugas',
-              borderColor: '#f87979',
-              data: this.taskTeacher.data.map((task) => task.count)
-            }
-          ]
-        }
-      }
     }
   },
   methods: {
@@ -230,18 +210,26 @@ export default {
     },
     async fetchTasks() {
       try {
-        const response = await api.get('/api/tasks/list/teacher')
+        const response = await api.get('/api/tasks/list/summary')
         if (response.status === 200) {
           const tasks = response.data.data
-          const taskCountsBySubject = tasks.reduce((acc, task) => {
-            const subject = task.mata_pelajaran || 'Unknown'
-            acc[subject] = (acc[subject] || 0) + 1
-            return acc
-          }, {})
-          this.taskTeacher.data = Object.entries(taskCountsBySubject).map(([subject, count]) => ({
-            subject,
-            count
-          }))
+          const taskData = tasks.map(task => {
+            const submittedStudents = task.students.filter(student => student.submission_info.is_submitted === 1)
+            return {
+              title: task.title,
+              count: submittedStudents.length
+            }
+          })
+          this.taskTeacher.data = {
+            labels: taskData.map(task => task.title),
+            datasets: [
+              {
+                label: 'Jumlah Siswa yang Mengumpulkan',
+                backgroundColor: '#f87979',
+                data: taskData.map(task => task.count)
+              }
+            ]
+          }
         } else if (response.status === 401) {
           console.error('Error fetching total tasks:', response)
           this.$router.push({ name: 'login' })

@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
-     public function index(Request $request)
+    public function index(Request $request)
     {
         // set validasi
         $validator = Validator::make($request->all(), [
@@ -49,11 +49,20 @@ class LoginController extends Controller
                 ], 400);
             }
 
+            // Menambahkan informasi guru_mata_pelajaran jika pengguna yang masuk adalah guru
+            $user = auth()->guard('api')->user();
+            $userData = $user->only(['name', 'email']);
+            $roles = $user->roles->pluck('name');
+
+            if ($roles->contains('guru')) {
+                $userData['guru_mata_pelajaran'] = $user->guru_mata_pelajaran;
+            }
+
             return response()->json([
                 'success' => true,
-                'user' => auth()->guard('api')->user()->only(['name', 'email']),
-                'roles' => auth()->guard('api')->user()->roles->pluck('name'),
-                'permissions' => auth()->guard('api')->user()->getPermissionArray(),
+                'user' => $userData,
+                'roles' => $roles,
+                'permissions' => $user->getPermissionArray(),
                 'token' => $token,
             ], 200);
         } catch (\Exception $e) {
@@ -61,6 +70,7 @@ class LoginController extends Controller
             return response()->json(['error' => 'Terjadi kesalahan. Harap coba lagi nanti.'], 500);
         }
     }
+
 
     public function logout()
     {

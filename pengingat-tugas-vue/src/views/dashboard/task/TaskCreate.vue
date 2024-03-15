@@ -140,7 +140,7 @@
             class="block w-full px-4 py-2 mt-8 text-sm font-medium leading-5 text-center text-white transition-colors duration-150 bg-blue-600 border border-transparent rounded-lg active:bg-blue-600 hover:bg-blue-700 focus:outline-none focus:shadow-outline-blue"
             @click="submitTask"
           >
-            Tambah Akun
+            Tambah Tugas
           </button>
           <button
             v-if="loadingButton"
@@ -360,7 +360,6 @@ export default {
   async created() {
     const getUserData = Cookies.get('userData')
     const userData = JSON.parse(getUserData)
-    console.log(userData)
     if (userData) {
       this.user = userData.user || {}
       this.role = userData.roles && userData.roles.length > 0 ? userData.roles : []

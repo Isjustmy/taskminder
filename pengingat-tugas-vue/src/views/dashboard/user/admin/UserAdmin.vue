@@ -37,11 +37,11 @@
                     {{ userData.phone_number }}
                   </td>
                   <td class="border border-black text-[16px] px-1 py-2">
-                    <router-link
+                    <!-- <router-link
                       :to="{ name: 'user_update', params: { userId: userData.id } }"
                       class="btn btn-warning ml-1"
                       >Edit</router-link
-                    >
+                    > -->
                     <button
                       type="button"
                       class="btn btn-error ml-2"

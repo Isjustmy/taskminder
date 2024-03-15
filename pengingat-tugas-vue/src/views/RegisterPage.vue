@@ -191,7 +191,7 @@
             </div>
             <div>
               <label class="block mt-4 text-sm flex">
-                Nomor Telepon (awalan 08...)
+                Nomor Telepon (awalan 08... atau +62 atau nomor dengan awalan "+" lainnya)
                 <p class="text-red-700">*</p></label
               >
               <input

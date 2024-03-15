@@ -1,9 +1,9 @@
 <template>
   <FullCalendar :options="calendarOptions">
     <template #headerToolbar>
-      <div class="fc-toolbar-chunk">
+      <!-- <div class="fc-toolbar-chunk">
         <button @click="addMarker">Tambah Penanda</button>
-      </div>
+      </div> -->
       <div class="fc-toolbar-chunk">
         {{ calendarOptions.title }}
       </div>
@@ -42,19 +42,19 @@ export default {
         events: [],
         height: 500,
         customButtons: {
-          addMarkerButton: {
-            text: 'Tambahkan Penanda',
-            click: () => this.addMarker()
-          },
-          loadingButton: {
-            text: 'Sedang Memuat...',
-            click: () => {}
-          }
+          // addMarkerButton: {
+          //   text: 'Tambahkan Penanda',
+          //   click: () => this.addMarker()
+          // },
+          // loadingButton: {
+          //   text: 'Sedang Memuat...',
+          //   click: () => {}
+          // }
         },
-        headerToolbar: {
-          left: 'addMarkerButton loadingButton', // Menambahkan tombol tambahkan penanda
-          center: 'title'
-        }
+        // headerToolbar: {
+        //   left: 'addMarkerButton', // Menambahkan tombol tambahkan penanda
+        //   center: 'title'
+        // }
       }
     }
   },
@@ -62,6 +62,37 @@ export default {
     this.fetchData()
   },
   methods: {
+    isGradedAndSubmitted(submissionInfo) {
+      if (submissionInfo && Array.isArray(submissionInfo)) {
+        for (const submission of submissionInfo) {
+          if (submission.is_submitted === 1 && submission.score !== '-') {
+            return true
+          }
+        }
+      }
+      return false
+    },
+    isSubmitted(submissionInfo) {
+      if (submissionInfo && Array.isArray(submissionInfo)) {
+        for (const submission of submissionInfo) {
+          if (submission.is_submitted === 1) {
+            return true
+          }
+        }
+      }
+      return false
+    },
+    isDeadlineToday(deadline) {
+      const today = new Date().setHours(0, 0, 0, 0)
+      return new Date(deadline).setHours(0, 0, 0, 0) === today
+    },
+    isDeadlineApproaching(deadline, daysAhead) {
+      const today = new Date().setHours(0, 0, 0, 0)
+      const deadlineDate = new Date(deadline).setHours(0, 0, 0, 0)
+      const deadlineThreshold = new Date(today)
+      deadlineThreshold.setDate(deadlineThreshold.getDate() + daysAhead)
+      return deadlineDate <= deadlineThreshold
+    },
     addMarker() {
       // Method untuk mengarahkan pengguna ke halaman tambah penanda
       this.$router.push({ name: 'calendar_create' })
@@ -83,28 +114,44 @@ export default {
     },
     processTasks(tasks) {
       const events = []
-      tasks.forEach(task => {
+      tasks.forEach((task) => {
         const deadlineDate = startOfDay(new Date(task.deadline))
+        let backgroundColor = 'green' // Warna latar belakang default untuk tugas
+        if (this.isGradedAndSubmitted(task.submission_info)) {
+          backgroundColor = '#34d399' // Jika sudah dinilai dan dikumpulkan, gunakan warna hijau muda
+        } else if (this.isSubmitted(task.submission_info)) {
+          backgroundColor = 'lightgreen' // Jika sudah dikumpulkan, gunakan warna hijau muda
+        } else if (
+          this.isDeadlineApproaching(task.deadline, 3) ||
+          this.isDeadlineToday(task.deadline)
+        ) {
+          backgroundColor = '#ff0000' // Jika mendekati deadline atau hari ini adalah deadline, gunakan warna merah
+        } else if (this.isDeadlineApproaching(task.deadline, 6)) {
+          backgroundColor = '#ff8c00' // Jika mendekati 6 hari sebelum deadline, gunakan warna oranye
+        }
         events.push({
           title: task.title,
           start: deadlineDate,
-          backgroundColor: 'green',
+          backgroundColor: backgroundColor,
           description: task.description
         })
       })
-      this.calendarOptions.events = [...this.calendarOptions.events, ...events]
+      this.calendarOptions.events = [...events]
     },
     processMarkers(markers) {
       const events = []
-      markers.forEach(marker => {
-        const markerDate = startOfDay(new Date(marker.date_marker))
-        events.push({
-          title: 'Penanda',
-          start: markerDate,
-          backgroundColor: 'blue',
-          description: marker.description
+      if (markers && Array.isArray(markers)) {
+        // Periksa apakah markers tidak null dan merupakan array
+        markers.forEach((marker) => {
+          const markerDate = startOfDay(new Date(marker.date_marker))
+          events.push({
+            title: 'Penanda',
+            start: markerDate,
+            backgroundColor: 'blue',
+            description: marker.description
+          })
         })
-      })
+      }
       this.calendarOptions.events = [...this.calendarOptions.events, ...events]
     },
     truncateDescription(description) {

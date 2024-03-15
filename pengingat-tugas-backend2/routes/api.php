@@ -68,13 +68,14 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/list/teacher/{id}', [TaskController::class, 'getTeacherTasksWithId'])->middleware('permission:tasks.view');
         Route::get('/list/summary', [TaskController::class, 'taskSummary'])->middleware('permission:tasks.view', 'role:guru');
         Route::get('/list/summary/{id}', [TaskController::class, 'taskSummaryWithId'])->middleware('permission:tasks.view', 'role:guru');
+        Route::post('/detail/submit_student', [TaskController::class, 'getTaskAndSubmissionData'])->middleware('permission:tasks.view', 'role:guru');
 
 
         // Route::post('/create', [TaskController::class, 'createTaskForStudent'])->middleware('permission:tasks.create');
         Route::post('/create/class', [TaskController::class, 'createTaskForClass'])->middleware('permission:tasks.create');
         Route::post('/{id}/submit', [TaskController::class, 'submitTaskByStudent'])->middleware('permission:tasks.submit');
         Route::put('/{id}/grade', [TaskController::class, 'gradeTaskByTeacher'])->middleware('permission:grade_task');
-        Route::put('/{id}/update', [TaskController::class, 'update'])->middleware('permission:tasks.edit');
+        Route::post('/{id}/update', [TaskController::class, 'update'])->middleware('permission:tasks.edit');
         Route::delete('/deleteTask/{id}', [TaskController::class, 'deleteTaskFromTeacher'])->middleware('permission:tasks.delete');
         Route::put('/resetSubmit/{id}', [TaskController::class, 'deleteTaskFromStudent'])->middleware('role:siswa|pengurus_kelas');
 
@@ -105,8 +106,8 @@ Route::middleware('auth:api')->group(function () {
     // Endpoint untuk menandai notifikasi sebagai sudah dibaca
     Route::post('/notifications/mark-as-read/{notification}', [NotificationController::class, 'markAsRead']);
 
-    Route::get('/akun/siswa', [UserController::class, 'getSiswaUsers'])->middleware(['permission:users.view', 'role:admin']);
-    Route::get('/akun/guru', [UserController::class, 'getGuruUsers'])->middleware(['permission:users.view', 'role:admin']);
+    Route::get('/akun/siswa/{classId}', [UserController::class, 'getSiswaUsers'])->middleware(['permission:users.view', 'role:admin']);
+    Route::post('/akun/guru', [UserController::class, 'getTeacherData'])->middleware(['permission:users.view', 'role:admin']);
     Route::get('/akun/admin', [UserController::class, 'getAdminUsers'])->middleware(['permission:users.view', 'role:admin']);
     Route::get('/akun/pengurus_kelas', [UserController::class, 'getPengurusKelasUsers'])->middleware(['permission:users.view', 'role:admin']);
 });

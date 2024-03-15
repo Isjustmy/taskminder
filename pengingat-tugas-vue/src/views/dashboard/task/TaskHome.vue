@@ -60,7 +60,6 @@
             <th class="w-[15%] text-wrap">Judul Tugas</th>
             <th class="w-[20%] text-wrap">Deskripsi</th>
             <th class="w-[15%] text-center">Kelas</th>
-            <th class="w-[15%] text-center text-wrap">Guru Pembuat Tugas</th>
             <th class="w-[15%] text-center text-wrap">Tanggal Pembuatan</th>
             <th class="w-[15%] text-center">Batas Waktu</th>
             <th class="w-[5%] text-center">Aksi</th>
@@ -72,7 +71,6 @@
               <td class="text-wrap">{{ task.title }}</td>
               <td class="text-wrap truncate-description">{{ task.description }}</td>
               <td class="text-center">{{ task.class.class_name }}</td>
-              <td>tess</td>
               <td class="text-center">{{ task.created_at }}</td>
               <td class="text-center">{{ task.deadline }}</td>
               <td>

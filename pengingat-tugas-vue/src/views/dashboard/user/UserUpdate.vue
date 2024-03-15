@@ -377,7 +377,7 @@ export default {
           hideProgressBar: false
         })
         // Redirect ke halaman user setelah berhasil mengupdate
-        this.$router.push({ name: 'user' })
+        this.$router.go(-1)
       } catch (error) {
         console.error('Gagal memperbarui data pengguna:', error)
         // Tambahkan penanganan kesalahan di sini

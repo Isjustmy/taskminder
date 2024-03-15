@@ -10,7 +10,7 @@
         :key="task.id"
         :class="{
           'bg-green-800': isGradedAndSubmitted(task.submission_info),
-          'bg-green-500': isSubmitted(task.submission_info),
+          'bg-green-500': task.submission_info && task.submission_info.is_submitted === 1,
           'bg-red-500': isDeadlineApproaching(task.deadline, 3) || isDeadlineToday(task.deadline),
           'bg-yellow-500':
             isDeadlineApproaching(task.deadline, 6) && !isDeadlineApproaching(task.deadline, 3),
@@ -29,10 +29,12 @@
             Deskripsi tugas: {{ truncateDescription(task.description) }}
           </p>
           <h3 class="text-white text-center mb-3">Deadline: {{ formatDate(task.deadline) }}</h3>
-          <!-- Tambahkan informasi apakah sudah dinilai atau belum -->
-          <h3 class="text-white text-center">Sudah Dinilai: {{ isGraded(task.submission_info) }}</h3>
-          <!-- Tambahkan informasi apakah sudah ada feedback_content atau belum -->
-          <h3 class="text-white text-center">Ada feedback dari guru: {{ hasFeedback(task.submission_info) }}</h3>
+          <h3 class="text-white text-center">
+            Sudah Dinilai: {{ isGraded(task.submission_info) }}
+          </h3>
+          <h3 class="text-white text-center">
+            Ada feedback dari guru: {{ hasFeedback(task.submission_info) }}
+          </h3>
         </div>
       </div>
     </div>
@@ -121,7 +123,7 @@ export default {
     },
     truncateDescription(description) {
       // Fungsi untuk memotong deskripsi tugas
-      const maxWords = 10 // Jumlah maksimal kata yang ingin ditampilkan
+      const maxWords = 7 // Jumlah maksimal kata yang ingin ditampilkan
       const words = description.split(' ')
       if (words.length > maxWords) {
         return words.slice(0, maxWords).join(' ') + '...' // Potong deskripsi dan tambahkan elipsis
@@ -142,20 +144,34 @@ export default {
       return new Date(dateString).toLocaleDateString('id-ID', options)
     },
     isGradedAndSubmitted(submissionInfo) {
-    for (const submission of submissionInfo) {
-      if (submission.is_submitted === 1 && submission.score !== '-') {
-        return true;
-      }
-    }
-    return false;
-  },
-    isSubmitted(submissionInfo) {
-      for (const submission of submissionInfo) {
-        if (submission.is_submitted === 1) {
-          return true
+      if (submissionInfo && Array.isArray(submissionInfo)) {
+        for (const submission of submissionInfo) {
+          if (
+            submission.is_submitted === 1 &&
+            submission.score?.trim() !== '' && // Memeriksa apakah score tidak kosong atau tidak hanya berisi spasi
+            submission.feedback_content?.trim() !== '' // Memeriksa apakah feedback_content tidak kosong atau tidak hanya berisi spasi
+          ) {
+            return true
+          }
         }
       }
       return false
+    },
+    isSubmitted(submissionInfo) {
+      if (submissionInfo && Array.isArray(submissionInfo)) {
+        for (const submission of submissionInfo) {
+          if (submission.is_submitted === 1) {
+            return true
+          }
+        }
+      }
+      return false
+    },
+    isGraded(submissionInfo) {
+      return submissionInfo && submissionInfo.score !== null ? 'Ya' : 'Belum'
+    },
+    hasFeedback(submissionInfo) {
+      return submissionInfo && submissionInfo.feedback_content !== null ? 'Ya' : 'Belum'
     },
     isDeadlineToday(deadline) {
       const today = new Date().setHours(0, 0, 0, 0)
@@ -167,24 +183,6 @@ export default {
       const deadlineThreshold = new Date(today)
       deadlineThreshold.setDate(deadlineThreshold.getDate() + daysAhead)
       return deadlineDate <= deadlineThreshold
-    },
-    // Method untuk mengecek apakah tugas sudah dinilai
-    isGraded(submissionInfo) {
-      for (const submission of submissionInfo) {
-        if (submission.score !== '-') {
-          return "Ya"
-        }
-      }
-      return "Belum"
-    },
-    // Method untuk mengecek apakah ada feedback_content
-    hasFeedback(submissionInfo) {
-      for (const submission of submissionInfo) {
-        if (submission.feedback_content !== '-') {
-          return "Ya"
-        }
-      }
-      return "Belum"
     }
   }
 }
@@ -192,10 +190,12 @@ export default {
 
 <style>
 .bg-green-500 {
-  background-color: #34D399 !important;
+  background-color: #34d399 !important;
 }
 .bg-green-800 {
   background-color: #08a102 !important;
 }
-
+.bg-green-300 {
+  background-color: #a7f3d0 !important; /* Hijau muda */
+}
 </style>

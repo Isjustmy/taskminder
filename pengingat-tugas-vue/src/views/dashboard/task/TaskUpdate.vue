@@ -1,5 +1,10 @@
 <template>
-  <div v-if="role === 'guru' || role === 'admin' || role === 'pengurus_kelas'">
+  <div
+    v-if="
+      Array.isArray(role) &&
+      (role.includes('admin') || role.includes('guru') || role.includes('pengurus_kelas'))
+    "
+  >
     <div class="mt-2 ml-3 flex">
       <button @click="goBack" class="btn btn-outline mr-3 text-black hover:text-white">
         <font-awesome-icon icon="arrow-left" class="text-xl" />
@@ -9,7 +14,11 @@
     <div>
       <div class="flex mt-5">
         <div class="w-1/2 px-5">
-          <div v-if="role === 'pengurus_kelas' || role === 'admin'">
+          <div
+            v-if="
+              Array.isArray(role) && (role.includes('admin') || role.includes('pengurus_kelas'))
+            "
+          >
             <label class="block mt-4 text-sm flex">
               Guru Mata Pelajaran
               <p class="text-red-700">*</p>
@@ -28,7 +37,12 @@
             </select>
           </div>
 
-          <div v-if="role === 'guru' || role === 'admin'">
+          <div
+            v-if="
+              Array.isArray(role) &&
+              (role.includes('admin') || role.includes('guru') || role.includes('pengurus_kelas'))
+            "
+          >
             <label class="block text-sm flex mt-4">
               Kelas
               <p class="text-red-700">*</p>
@@ -176,13 +190,13 @@ export default {
   data() {
     return {
       user: {},
-      role: '',
+      role: [],
       formData: {
         title: '',
         description: '',
         deadline: '',
         class_id: null,
-        file: null,
+        selectedFiles: null,
         link: '',
         teacher_id: null
       },
@@ -196,10 +210,6 @@ export default {
     }
   },
   computed: {
-    userData() {
-      const userData = Cookies.get('userData')
-      return userData ? JSON.parse(userData) : null
-    },
     taskId() {
       return this.$route.params.taskId // Ambil ID task dari params route
     },
@@ -239,28 +249,58 @@ export default {
     async fetchTask() {
       this.loadingTaskData = true
       try {
-        const response = await api.get(`/api/tasks/list/teacher/${this.taskId}`)
-        this.loadingTaskData = false
-        const task = response.data.data
+        let response = null
+        if (this.role.includes('admin')) {
+          response = await api.get(`/api/tasks/${this.$route.params.taskId}`)
+          const task = response.data.data
+          this.formData.title = task.title
+          this.formData.description = task.description
+          this.formData.link = task.link
+          this.formData.file = task.file_path
+          this.formData.class_id = task.class_id
 
-        // Set formData with task data
-        this.formData.title = task.title
-        this.formData.description = task.description
-        this.formData.link = task.link
+          // You may also need to format the deadline date if necessary
+          this.formData.deadline = this.formatDeadline(task.deadline)
+          const selectedClass = this.classes.find((classOption) => classOption.id === task.class_id)
+          if (selectedClass) {
+            this.formData.class_id = selectedClass.id
+          }
+        } else if (this.role.includes('guru')) {
+          response = await api.get(`/api/tasks/list/teacher/${this.$route.params.taskId}`)
+          const task = response.data.data
+          this.formData.title = task.title
+          this.formData.description = task.description
+          this.formData.link = task.link
+          this.formData.file = task.file_path
+          this.formData.class_id = task.class_id
 
-        // If there's a file attached to the task, you may need to handle it differently
-        // For example, you might need to display the file name or provide a link to download it
-        this.formData.file = task.file
+          // You may also need to format the deadline date if necessary
+          this.formData.deadline = this.formatDeadline(task.deadline)
+          const selectedClass = this.classes.find((classOption) => classOption.id === task.class_id)
+          if (selectedClass) {
+            this.formData.class_id = selectedClass.id
+          }
+        } else if (this.role.includes('pengurus_kelas')) {
+          response = await api.get(`/api/tasks/murid/${this.$route.params.taskId}`)
+          const taskData = response.data
+          const task = taskData.tasks[0]
+          // Set formData with task data
+          this.formData.title = task.title
+          this.formData.description = task.description
+          this.formData.link = task.link
+          this.formData.file = task.file_path
+          this.formData.class_id = task.class_id
+          this.formData.deadline = this.formatDeadline(task.deadline)
 
-        this.formData.class_id = task.class.id
-
-        // You may also need to format the deadline date if necessary
-        this.formData.deadline = this.formatDeadline(task.deadline)
-
-        const selectedClass = this.classes.find((classOption) => classOption.id === task.class.id)
-        if (selectedClass) {
-          this.formData.class_id = selectedClass.id
+          const selectedClass = this.classes.find((classOption) => classOption.id === task.class_id)
+          if (selectedClass) {
+            this.formData.class_id = selectedClass.id
+          }
+        } else {
+          console.error('Role pengguna tidak valid')
+          return
         }
+        this.loadingTaskData = false
       } catch (error) {
         this.loadingTaskData = false
         console.error('Error fetching task:', error)
@@ -284,7 +324,8 @@ export default {
       }
     },
     handleFileChange(event) {
-      this.formData.file = event.target.files[0]
+      const selectedFile = event.target.files[0]
+      this.formData.selectedFiles = selectedFile
     },
     async updateTask() {
       this.loadingButton = true
@@ -297,14 +338,21 @@ export default {
         formData2.append('teacher_id', this.formData.teacher_id)
 
         if (this.formData.file) {
-          formData2.append('file', this.formData.file)
+          formData2.append('file', this.formData.selectedFiles) // Change to selectedFiles instead of this.formData.selectedFile
         }
 
         if (this.formData.link) {
           formData2.append('link', this.formData.link)
         }
 
-        const response = await api.put(`/api/tasks/${this.taskId}/update`, formData2)
+        const response = await api({
+          method: 'post',
+          url: `/api/tasks/${this.taskId}/update`,
+          data: formData2,
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
 
         this.toast.success('Tugas Berhasil Diupdate', {
           position: 'top-center',
@@ -312,7 +360,7 @@ export default {
           hideProgressBar: false
         })
 
-        this.$router.push({ name: 'task' })
+        this.$router.go(-1)
       } catch (error) {
         console.error('Error updating task:', error)
         if (error.response && error.response.data && error.response.data.data) {
@@ -367,10 +415,11 @@ export default {
     }
   },
   async created() {
-    if (this.userData) {
-      this.user = this.userData.user || {}
-      this.role =
-        this.userData.roles && this.userData.roles.length > 0 ? this.userData.roles[0] : ''
+    const getUserData = Cookies.get('userData')
+    const userData = JSON.parse(getUserData)
+    if (userData) {
+      this.user = userData.user || {}
+      this.role = userData.roles && userData.roles.length > 0 ? userData.roles : []
       this.fetchClasses()
       this.fetchTask()
       this.fetchTeachers()

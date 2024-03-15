@@ -22,12 +22,15 @@ import UserPengurusKelas from '@/views/dashboard/user/pengurus_kelas/UserPenguru
 import UserGuru from '@/views/dashboard/user/guru/UserGuru.vue'
 import UserAdmin from '@/views/dashboard/user/admin/UserAdmin.vue'
 import UserCreate from '@/views/dashboard/user/UserCreate.vue'
-import UserUpdate from '@/views/dashboard/user/UserUpdate.vue'
+// import UserUpdate from '@/views/dashboard/user/UserUpdate.vue'
 import CalendarHome from '@/views/dashboard/calendar/CalendarHome.vue'
 import TambahPenanda from '@/views/dashboard/calendar/TambahPenanda.vue'
 import TesLayout from '@/layouts/TesLayout.vue'
 import Cookies from 'js-cookie'
 import RekapitulasiHome from '@/views/dashboard/rekapitulasi/RekapitulasiHome.vue'
+import TaskHomeAdmin from '../views/dashboard/task/TaskHomeAdmin.vue'
+import StudentTaskSubmitted from '@/views/dashboard/task/StudentTaskSubmitted.vue'
+import StudentSubmitDetail from '@/views/dashboard/task/StudentSubmitDetail.vue'
 
 const routes = [
   { path: '', name: 'landing', component: LandingPage },
@@ -77,19 +80,31 @@ const routes = [
         component: UserCreate,
         meta: { requiresAuth: true }
       },
-      {
-        path: '/user/:userId/update',
-        name: 'user_update',
-        component: UserUpdate,
-        meta: { requiresAuth: true }
-      },
+      // {
+      //   path: '/user/:userId/update',
+      //   name: 'user_update',
+      //   component: UserUpdate,
+      //   meta: { requiresAuth: true }
+      // },
 
       // grup route task
       { path: 'task', name: 'task', component: TaskHome, meta: { requiresAuth: true } },
       {
+        path: 'task/admin',
+        name: 'task_home_admin',
+        component: TaskHomeAdmin,
+        meta: { requiresAuth: true }
+      },
+      {
         path: 'task/detail/:taskId',
         name: 'task_detail',
         component: TaskDetail,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'task/detail/list_siswa/:taskId',
+        name: 'task_detail_submit_list',
+        component: StudentTaskSubmitted,
         meta: { requiresAuth: true }
       },
       {
@@ -157,7 +172,14 @@ const routes = [
         name: 'rekapitulasi',
         component: RekapitulasiHome,
         meta: { requiresAuth: true }
-      }
+      },
+
+      {
+        path: 'submit/:task_id/:student_task_id',
+        name: 'student_detailed_submit',
+        component: StudentSubmitDetail,
+        meta: { requiresAuth: true }
+      },
     ]
   },
   { path: '/register', name: 'register', component: Register },
@@ -176,7 +198,7 @@ router.afterEach((to, from, failure) => {
   if (!failure) {
     setTimeout(() => {
       if (window.HSStaticMethods) {
-        window.HSStaticMethods.autoInit();
+        window.HSStaticMethods.autoInit()
       }
     }, 100)
   }

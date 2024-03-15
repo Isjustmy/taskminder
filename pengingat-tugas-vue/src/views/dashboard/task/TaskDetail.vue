@@ -68,7 +68,7 @@
             </div>
             <div class="ml-4 w-[70%] text-wrap content-end text-justify flex">
               <p class="font-bold text-lg">:</p>
-              <button class="ml-2 mt-1 btn btn-outline">Klik untuk melihat</button>
+              <router-link :to="{ name: 'task_detail_submit_list', params: { taskId: taskId } }" class="ml-2 mt-1 btn btn-outline">Klik untuk melihat</router-link>
             </div>
           </div>
         </div>
@@ -112,12 +112,12 @@
     <dialog id="image-modal" class="modal">
       <div class="modal-box">
         <span
-          class="close btn btn-neutral text-white"
+          class="close btn btn-neutral text-white absolute z-10"
           @click="closeImageModal"
-          style="font-size: 14px; cursor: pointer; position: absolute; top: 10px; right: 10px"
+          style="font-size: 14px; cursor: pointer;"
           >Tutup</span
         >
-        <img :src="fullImagePath" alt="Full Image" />
+        <img class="mt-12" :src="fullImagePath" alt="Full Image" />
       </div>
     </dialog>
     <dialog id="delete-task-modal" class="modal">

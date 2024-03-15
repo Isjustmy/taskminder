@@ -52,11 +52,15 @@
             <td class="text-[15px] text-center">{{ task.mata_pelajaran }}</td>
             <td class="text-[15px] text-center">{{ formatDate(task.deadline) }}</td>
             <td class="text-[15px] text-center">
-              {{ task.submission_info[0].is_submitted ? 'Ya' : 'Tidak' }}
+              {{ task.submission_info.is_submitted ? 'Ya' : 'Tidak' }}
             </td>
             <!-- Tampilkan informasi telah dikumpulkan atau belum -->
             <td class="text-[15px] text-center">
-              {{ task.submission_info[0].is_late === 'yes' ? 'Ya' : 'Tidak' }}
+              {{
+                task.submission_info.is_late === null || task.submission_info.is_late === 0
+                  ? 'Tidak'
+                  : 'Ya'
+              }}
             </td>
             <!-- Tampilkan informasi terlambat mengerjakan atau belum -->
             <td class="text-[15px] text-center">
