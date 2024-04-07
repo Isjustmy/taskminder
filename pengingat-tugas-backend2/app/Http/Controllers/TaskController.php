@@ -459,8 +459,8 @@ class TaskController extends Controller
 
     public function getTaskAndSubmissionData(Request $request)
     {
-         // Validasi
-         $validator = Validator::make($request->all(), [
+        // Validasi
+        $validator = Validator::make($request->all(), [
             'task_id' => 'required|exists:tasks,id',
             'student_task_id' => 'required|exists:student_tasks,id',
         ]);
@@ -882,7 +882,7 @@ class TaskController extends Controller
             'description' => 'required|string',
             'class_id' => 'required|integer|exists:student_classes,id',
             'deadline' => 'required|date',
-            'teacher_id' => 'requiredinteger|exists:users,id',
+            'teacher_id' => (!$isUserGuru ? 'required|integer|exists:users,id' : 'nullable'),
             'file' => 'nullable',
             'link' => 'nullable',
         ]);
@@ -1010,6 +1010,10 @@ class TaskController extends Controller
     }
 
 
+    /**
+     * Menghapus tugas dari guru secara permanen.
+     * PERINGATAN: TUGAS SISWA YANG TELAH DISUBMIT JUGA AKAN TERHAPUS!
+     */
     public function deleteTaskFromTeacher($id)
     {
         try {
@@ -1026,12 +1030,20 @@ class TaskController extends Controller
             // Mendapatkan siswa yang terdaftar dalam kelas
             $students = $class->students;
 
+            // Array untuk menyimpan ID tugas yang gagal dikirim notifikasi
+            $failedNotifications = [];
+
             // Mengirim notifikasi kepada setiap siswa
             foreach ($students as $student) {
-                $student->notify(new TaskCancelledNotification($task));
+                try {
+                    $student->notify(new TaskCancelledNotification($task));
+                } catch (\Exception $e) {
+                    // Jika gagal mengirim notifikasi, tambahkan ID tugas ke dalam array failedNotifications
+                    $failedNotifications[] = $student->id;
+                }
             }
 
-            // Menghapus data submit tugas siswa yang terkait dengan task_id dan teacher_id
+            // Menghapus data submit tugas siswa yang terdaftar
             $studentTaskData = StudentTasks::where('task_id', $id)->where('teacher_id', $task->creator_id)->get();
 
             foreach ($studentTaskData as $studentTask) {
@@ -1045,18 +1057,20 @@ class TaskController extends Controller
 
             // Hapus file terkait jika ada
             if ($task->file_path) {
-                // Dapatkan nama file dari URL
                 $fileName = basename($task->file_path);
-
-                // Hapus file dari sistem penyimpanan berdasarkan nama file
                 Storage::disk('public')->delete('files_from_teacher/' . $fileName);
             }
 
             // Hapus notifikasi terkait dengan tugas
             DB::table('notifications')->where('data->task_id', $task->id)->delete();
 
-            // Menghapus tugas berdasarkan ID yang diberikan
+            // Hapus tugas berdasarkan ID yang diberikan
             $task->delete();
+
+            // Jika ada notifikasi yang gagal dikirim, kembalikan respon dengan pesan yang sesuai
+            if (!empty($failedNotifications)) {
+                return new TaskResource(false, 'Tugas berhasil dihapus, tetapi notifikasi tidak dapat dikirim kepada beberapa siswa.', $failedNotifications);
+            }
 
             return new TaskResource(true, 'Tugas berhasil dihapus beserta data submit tugas siswa yang terkait', []);
         } catch (ModelNotFoundException $e) {

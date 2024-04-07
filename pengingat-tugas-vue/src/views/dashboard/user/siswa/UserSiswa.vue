@@ -187,32 +187,35 @@ export default {
     async fetchUserData() {
       try {
         this.loadingUsers = true
-        const response = await api.get(`/api/akun/siswa/${this.selectedClass}`) // Use selectedClass
+        const response = await api.get(`/api/akun/siswa/${this.selectedClass}`)
         if (response.status === 200) {
           this.userApiData = response.data.data.data || []
-        } else if (response.status === 401) {
-          console.error('Authentication error:', response)
-          const toast = useToast()
-          toast.error('Terjadi kesalahan autentikasi. Harap login ulang', {
-            position: 'top-center',
-            timeout: 1500
-          })
-          this.$router.push({ name: 'login' })
-        } else {
-          console.error('Unexpected error occurred:', response)
-          const toast = useToast()
-          toast.error('Terjadi kesalahan yang tidak terduga. Silakan coba lagi nanti', {
-            position: 'top-center',
-            timeout: 1500
-          })
         }
       } catch (error) {
         console.error('An error occurred while fetching user data:', error)
-        const toast = useToast()
-        toast.error('Terjadi kesalahan saat mengambil data pengguna. Silakan coba lagi nanti', {
-          position: 'top-center',
-          timeout: 1500
-        })
+        switch (error.response.status) {
+          case 400:
+            this.toast.error('Terjadi kesalahan permintaan.', {
+              position: 'top-center',
+              timeout: 1500
+            })
+            break;
+          case 404:
+            this.userApiData = [] // kosongkan data user dikarenakan data tidak ditemukan/tidak ada data.
+            break;
+          case 500:
+            this.toast.error('Terjadi kesalahan saat mengambil data pengguna. Silakan coba lagi nanti', {
+              position: 'top-center',
+              timeout: 1500
+            })
+            break;
+          default:
+            this.toast.error('Terjadi kesalahan yang tidak terduga. Silakan coba lagi nanti', {
+              position: 'top-center',
+              timeout: 1500
+            })
+            break;
+        }
       } finally {
         this.loadingUsers = false
       }

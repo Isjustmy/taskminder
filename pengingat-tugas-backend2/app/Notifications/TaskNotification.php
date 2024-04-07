@@ -22,7 +22,10 @@ class TaskNotification extends Notification
 
     public function via($notifiable)
     {
-        return ['mail', 'database']; // Sesuaikan dengan metode notifikasi yang Anda gunakan (contoh: mail, database, etc.)
+        return [
+            // 'mail',
+            'database'
+            ]; // Sesuaikan dengan metode notifikasi yang Anda gunakan (contoh: mail, database, etc.)
     }
 
     public function toMail($notifiable)
@@ -39,9 +42,8 @@ class TaskNotification extends Notification
     public function toArray($notifiable)
     {
         return [
-            'task_id' => $this->task->id,
-            'task_title' => $this->task->title,
-            'teacher_name' => $this->teacherName,
+            'title' => 'Tugas ' . $this->task->mata_pelajaran . ' baru',
+            'description' => 'Tugas baru oleh guru ' . $this->teacherName . ' telah ditugaskan dengan judul: ' . $this->task->title . '. Harap segera kerjakan tugas sebelum deadline tiba',
             'deadline' => $this->task->deadline,
         ];
     }

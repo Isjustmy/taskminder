@@ -4,13 +4,19 @@
       <div>
         <div class="ml-5 text-2xl font-bold flex">
           <h1 class="pt-2">List User Admin</h1>
-          <router-link :to="{ name: 'user_create' }" class="btn btn-success text-white ml-12"
-            >Tambah User Baru</router-link
-          >
+          <router-link :to="{ name: 'user_create' }" class="btn btn-success text-white ml-12">Tambah User
+            Baru</router-link>
         </div>
 
         <!-- Display user data table with adjusted styling -->
-        <div class="mt-10 px-4">
+        <div class="mt-10 px-2">
+          <div class="flex mb-4">
+            <input placeholder="Cari Nama..." class="w-[28%] input input-bordered" v-model="searchQuery" />
+            <select class="select select-bordered ml-4 w-[26%]" v-model="sortOrder" @change="sortUserList">
+              <option value="newest">Akun yang dibuat lebih baru</option>
+              <option value="oldest">Akun yang dibuat lebih lama</option>
+            </select>
+          </div>
           <div>
             <table class="table table-fixed">
               <thead class="text-black font-bold text-[16px] border border-black">
@@ -25,7 +31,7 @@
               <tbody>
                 <tr v-for="(userData, index) in userApiData" :key="userData.id">
                   <td class="text-center border border-black text-[16px] px-1 py-2">
-                    {{ index + 1 }}
+                    {{ userData.counter }}
                   </td>
                   <td class="text-left border border-black text-[16px] px-1 py-2">
                     {{ userData.name }}
@@ -42,11 +48,7 @@
                       class="btn btn-warning ml-1"
                       >Edit</router-link
                     > -->
-                    <button
-                      type="button"
-                      class="btn btn-error ml-2"
-                      @click="confirmDeleteUser(userData.id)"
-                    >
+                    <button type="button" class="btn btn-error ml-2" @click="confirmDeleteUser(userData.id)">
                       Hapus
                     </button>
                   </td>
@@ -60,60 +62,40 @@
               </tbody>
             </table>
             <dialog id="delete-modal" class="modal">
-          <div class="modal-box">
-            <form method="dialog">
-              <button
-                class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-                @click.prevent="closeDeleteUserModal"
-              >
-                ✕
-              </button>
-            </form>
-            <h3 class="font-bold text-lg">Konfirmasi Hapus Akun</h3>
-            <p class="py-4">Apakah Anda yakin ingin menghapus akun pengguna ini?</p>
-            <div class="modal-action">
-              <form method="dialog">
-                <button
-                  v-if="!loadingDelete"
-                  class="btn btn-success hover:bg-green-300 mr-4"
-                  @click.prevent="deleteUserData"
-                >
-                  Ya, Hapus
-                </button>
-                <button
-                  v-if="loadingDelete"
-                  aria-disabled="true"
-                  class="btn btn-active btn-ghost text-black mr-4"
-                >
-                  <svg
-                    aria-hidden="true"
-                    role="status"
-                    class="inline mr-2 w-4 h-4 text-black animate-spin"
-                    viewBox="0 0 100 101"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
-                      fill="#E5E7EB"
-                    ></path>
-                    <path
-                      d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
-                      fill="currentColor"
-                    ></path>
-                  </svg>
-                  Memproses...
-                </button>
-                <button
-                  class="btn btn-error hover:bg-red-300"
-                  @click.prevent="closeDeleteUserModal"
-                >
-                  Batal
-                </button>
-              </form>
-            </div>
-          </div>
-        </dialog>
+              <div class="modal-box">
+                <form method="dialog">
+                  <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                    @click.prevent="closeDeleteUserModal">
+                    ✕
+                  </button>
+                </form>
+                <h3 class="font-bold text-lg">Konfirmasi Hapus Akun</h3>
+                <p class="py-4">Apakah Anda yakin ingin menghapus akun pengguna ini?</p>
+                <div class="modal-action">
+                  <form method="dialog">
+                    <button v-if="!loadingDelete" class="btn btn-success hover:bg-green-300 mr-4"
+                      @click.prevent="deleteUserData">
+                      Ya, Hapus
+                    </button>
+                    <button v-if="loadingDelete" aria-disabled="true" class="btn btn-active btn-ghost text-black mr-4">
+                      <svg aria-hidden="true" role="status" class="inline mr-2 w-4 h-4 text-black animate-spin"
+                        viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                          d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                          fill="#E5E7EB"></path>
+                        <path
+                          d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                          fill="currentColor"></path>
+                      </svg>
+                      Memproses...
+                    </button>
+                    <button class="btn btn-error hover:bg-red-300" @click.prevent="closeDeleteUserModal">
+                      Batal
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </dialog>
           </div>
         </div>
       </div>
@@ -135,6 +117,7 @@ export default {
       searchQuery: '',
       selectedRole: '',
       filteredUserData: [],
+      sortOrder: '',
       loadingUsers: false,
       loadingDelete: false,
       selectedIdOrder: '',
@@ -147,13 +130,47 @@ export default {
       return userData ? JSON.parse(userData) : null
     }
   },
+  watch: {
+    searchQuery(newValue) {
+      this.filterByName(newValue);
+    }
+  },
   methods: {
+    sortUserList() {
+      // Filter user data based on selected sort order
+      if (this.sortOrder === 'newest') {
+        this.filteredUserData = this.userApiData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      } else if (this.sortOrder === 'oldest') {
+        this.filteredUserData = this.userApiData.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      }
+    },
+    filterByName() {
+      const query = this.searchQuery.toLowerCase();
+      if (query === '') {
+        // Jika kotak pencarian kosong, reset data pengguna ke semua data
+        this.fetchUserData();
+      } else {
+        // Simpan data pengguna sebelum pencarian dilakukan
+        const originalData = [...this.userApiData];
+        // Lakukan pencarian
+        this.userApiData = this.userApiData.filter(user => {
+          return user.name.toLowerCase().includes(query);
+        });
+        // Jika tidak ada hasil pencarian, kembalikan tampilan ke keadaan awal
+        if (this.userApiData.length === 0) {
+          this.userApiData = originalData;
+        }
+      }
+    },
     async fetchUserData() {
       try {
         this.loadingUsers = true
         const response = await api.get('/api/akun/admin')
         if (response.status === 200) {
           this.userApiData = response.data.data.data || []
+          this.userApiData.forEach((user, index) => {
+            user.counter = index + 1;
+          });
           console.log(this.userApiData)
         } else if (response.status === 401) {
           console.error('Authentication error:', response)
@@ -235,12 +252,13 @@ export default {
       }
     }
   },
-  async created() {
+  created() {
     if (this.userData) {
       this.user = this.userData.user || {}
       this.role =
         this.userData.roles && this.userData.roles.length > 0 ? this.userData.roles[0] : ''
-      await this.fetchUserData()
+      this.fetchUserData()
+      this.sortOrder = 'oldest'
     } else {
       console.error('No authentication data')
       // Implement action for no authentication data

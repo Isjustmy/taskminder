@@ -111,7 +111,7 @@ class UserController extends Controller
                     'success' => false,
                     'message' => 'Data siswa tidak ditemukan untuk kelas yang dipilih.',
                     'data' => []
-                ]);
+                ], 404);
             }
 
             // Menghilangkan student_class_id dari setiap pengguna
@@ -123,7 +123,7 @@ class UserController extends Controller
                 'success' => true,
                 'message' => 'Data siswa berhasil diambil untuk kelas yang dipilih.',
                 'data' => $users
-            ]);
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -134,20 +134,20 @@ class UserController extends Controller
     }
 
 
-    public function getPengurusKelasUsers()
+    public function getPengurusKelasUsers($idKelas)
     {
         try {
-            $users = User::role('pengurus_kelas')->with('studentClass')->paginate(5);
+            $users = User::role('pengurus_kelas')->where('student_class_id', $idKelas)->with('studentClass')->get();
             if ($users->isEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data pengurus kelas tidak ditemukan.',
+                    'message' => 'Data pengurus kelas pada kelas ini tidak ditemukan.',
                     'data' => []
-                ]);
+                ], 404);
             }
 
             // Menghilangkan student_class_id dari setiap pengguna
-            foreach ($users->items() as $user) {
+            foreach ($users as $user) {
                 unset($user->student_class_id);
             }
 
@@ -155,7 +155,7 @@ class UserController extends Controller
                 'success' => true,
                 'message' => 'Data pengurus kelas berhasil diambil.',
                 'data' => $users
-            ]);
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -190,14 +190,14 @@ class UserController extends Controller
                     'classes' => $classes,
                     'subjects' => $subjects,
                 ],
-            ]);
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mendapatkan data kelas dan mata pelajaran.',
                 'error' => $e->getMessage(),
                 'data' => null,
-            ]);
+            ], 500);
         }
     }
 
@@ -214,11 +214,31 @@ class UserController extends Controller
             $query->where('name', 'like', '%' . request()->search . '%');
         })->with(['roles', 'studentClass:id,class'])->select(['id', 'nomor_absen', 'name', 'email', 'phone_number', 'student_class_id', 'guru_mata_pelajaran'])->latest()->paginate(5);
 
+        // Modify the data to place student_class at the same level as student_class_id
+        $users->getCollection()->transform(function ($user) {
+            // If student_class_id is not null, set student_class as an object with id and class
+            if ($user->student_class_id !== null) {
+                $user->student_class = [
+                    'id' => $user->studentClass->id,
+                    'class' => $user->studentClass->class,
+                ];
+                unset($user->student_class_id);
+                unset($user->studentClass); // Remove the original studentClass object
+            } else {
+                unset($user->student_class_id);
+            }
+            return $user;
+        });
+
         // Append query string to pagination links
         $users->appends(['search' => request()->search]);
 
         // Return with Api Resource
-        return new UserResource(true, 'List Data Users', $users);
+        return response()->json([
+            'success' => true,
+            'message' => 'List Data Users',
+            'data' => $users,
+        ]);
     }
 
 
@@ -269,7 +289,7 @@ class UserController extends Controller
         // If the user is authenticated, return the details
         if ($currentUser) {
             // Get user details with roles and appropriate identifier relation
-            $userDetails = User::with(['roles', 'teacherIdentifier', 'studentIdentifier'])->find($currentUser->id);
+            $userDetails = User::with(['roles', 'teacherIdentifier', 'studentIdentifier', 'studentClass'])->find($currentUser->id);
 
             // Initialize an array to hold the user details
             $userData = $userDetails->toArray();
@@ -277,10 +297,12 @@ class UserController extends Controller
             // Check if the user is a teacher
             if ($userDetails->hasRole('guru')) {
                 // If the user is a teacher, remove the student identifier and identifier from the response
-                unset($userData['student_identifier'], $userData['identifier']);
+                unset($userData['student_identifier']);
             } elseif ($userDetails->hasRole('siswa')) {
                 // If the user is a student, remove the teacher identifier and identifier from the response
-                unset($userData['teacher_identifier'], $userData['identifier']);
+                unset($userData['teacher_identifier']);
+                // Add student class data to the response
+                $userData['student_class'] = $userDetails->studentClass;
             }
 
             // Return success with Api Resource
@@ -314,6 +336,13 @@ class UserController extends Controller
         // Check if pengurus_kelas role is selected but siswa role is not selected, then automatically add siswa role
         if (in_array('pengurus_kelas', $roles) && !in_array('siswa', $roles)) {
             $roles[] = 'siswa';
+        }
+
+        if (in_array('pengurus_kelas', $roles)) {
+            $existingPengurusCount = User::role('pengurus_kelas')->where('student_class_id', $request->class_id)->count();
+            if ($existingPengurusCount >= 2) {
+                return response()->json(['error' => 'Pengurus Kelas dalam satu kelas hanya diperbolehkan sebanyak 2 akun.'], 422);
+            }
         }
 
         $validator = Validator::make($request->all(), [

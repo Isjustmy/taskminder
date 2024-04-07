@@ -129,7 +129,8 @@ export default {
       selectedMataPelajaran: '',
       isSelected: false,
       selectedIdOrder: '',
-      userIdToDelete: ''
+      userIdToDelete: '',
+      searchQuery: '',
     }
   },
   computed: {
@@ -138,7 +139,30 @@ export default {
       return userData ? JSON.parse(userData) : null
     }
   },
+  watch: {
+    searchQuery(newValue) {
+      this.filterByName(newValue);
+    }
+  },
   methods: {
+    filterByName() {
+      const query = this.searchQuery.toLowerCase();
+      if (query === '') {
+        // Jika kotak pencarian kosong, reset data pengguna ke semua data
+        this.fetchUserData();
+      } else {
+        // Simpan data pengguna sebelum pencarian dilakukan
+        const originalData = [...this.userApiData];
+        // Lakukan pencarian
+        this.userApiData = this.userApiData.filter(user => {
+          return user.name.toLowerCase().includes(query);
+        });
+        // Jika tidak ada hasil pencarian, kembalikan tampilan ke keadaan awal
+        if (this.userApiData.length === 0) {
+          this.userApiData = originalData;
+        }
+      }
+    },
     async fetchSubjects() {
       try {
         const response = await api.get('/api/getData');

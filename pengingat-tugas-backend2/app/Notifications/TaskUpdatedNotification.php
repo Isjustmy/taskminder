@@ -31,7 +31,10 @@ class TaskUpdatedNotification extends Notification
      */
     public function via($notifiable)
     {
-        return ['database', 'mail'];
+        return [
+            // 'mail',
+            'database'
+            ];
     }
 
     /**
@@ -61,7 +64,6 @@ class TaskUpdatedNotification extends Notification
             'message' => 'Tugas telah diperbarui. Silakan periksa detailnya.',
             'task_id' => $this->task->id,
             'class_id' => $this->task->class_id,
-            // Tambahkan data notifikasi tugas di sini sesuai kebutuhan
         ];
     }
 }

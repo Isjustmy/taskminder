@@ -31,6 +31,7 @@ import RekapitulasiHome from '@/views/dashboard/rekapitulasi/RekapitulasiHome.vu
 import TaskHomeAdmin from '../views/dashboard/task/TaskHomeAdmin.vue'
 import StudentTaskSubmitted from '@/views/dashboard/task/StudentTaskSubmitted.vue'
 import StudentSubmitDetail from '@/views/dashboard/task/StudentSubmitDetail.vue'
+import Profile from '../views/dashboard/profile/Profile.vue'
 
 const routes = [
   { path: '', name: 'landing', component: LandingPage },
@@ -180,6 +181,13 @@ const routes = [
         component: StudentSubmitDetail,
         meta: { requiresAuth: true }
       },
+
+      {
+        path:'profile',
+        name: 'profil_user',
+        component: Profile,
+        meta: { requiresAuth: true }
+      }
     ]
   },
   { path: '/register', name: 'register', component: Register },

@@ -9,7 +9,7 @@
           >
             <font-awesome-icon icon="arrow-left" />
           </button>
-          <h1 class="pt-2 ml-8">List Siswa</h1>
+          <h1 class="pt-2 ml-8">List Penugasan Siswa</h1>
         </div>
         <!-- Display user data table with adjusted styling -->
         <div class="mt-10">

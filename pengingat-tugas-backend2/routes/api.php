@@ -47,12 +47,13 @@ Route::middleware('auth:api')->group(function () {
 
     Route::prefix('user')->group(function () {
         Route::get('/', [UserController::class, 'index'])->middleware(['permission:users.view', 'role:admin']);
-        Route::get('/current', [UserController::class, 'currentUser'])->middleware('permission:users.view');
+        Route::get('/current', [UserController::class, 'currentUser']);
         Route::get('/{id}', [UserController::class, 'show'])->middleware('permission:users.view');
         Route::post('/create', [UserController::class, 'store'])->middleware('permission:users.store');
         Route::put('/{id}/update', [UserController::class, 'update'])->middleware('permission:users.edit');
         Route::delete('/{id}', [UserController::class, 'destroy'])->middleware('permission:users.delete');
     });
+
 
     Route::prefix('tasks')->group(function () {
         Route::get('/murid', [TaskController::class, 'tugasSiswa'])->middleware([CheckStudentOrClassManagerRole::class]);
@@ -80,9 +81,13 @@ Route::middleware('auth:api')->group(function () {
         Route::put('/resetSubmit/{id}', [TaskController::class, 'deleteTaskFromStudent'])->middleware('role:siswa|pengurus_kelas');
 
         //new: route get student task file
-        Route::get('/{id}/file', [TaskController::class, 'getStudentTaskFile'])->middleware('permission:tasks.view');
+        // Route::get('/{id}/file', [TaskController::class, 'getStudentTaskFile'])->middleware('permission:tasks.view');
     });
 
+
+    /**
+     * Endpoint untuk CRUD data kelas yang terdaftar
+     */
     Route::prefix('class')->group(function () {
         Route::get('/', [ClassController::class, 'index']);
         Route::post('/create', [ClassController::class, 'store'])->middleware('role:admin');
@@ -92,6 +97,10 @@ Route::middleware('auth:api')->group(function () {
     });
 
 
+    /**
+     * Endpoint data kalender untuk role siswa (dan pengurus kelas, karena pengurus kelas
+     * sudah otomatis ditandai sebagai role siswa.)
+     */
     Route::prefix('calendar')->group(function () {
         Route::get('/', [CalendarController::class, 'index'])->middleware('permission:personal_task_calendar');
         Route::get('/{id}', [CalendarController::class, 'show'])->middleware('permission:personal_task_calendar');
@@ -100,14 +109,33 @@ Route::middleware('auth:api')->group(function () {
         Route::delete('/{id}/delete', [CalendarController::class, 'destroy'])->middleware('permission:personal_task_calendar');
     });
 
-    // Endpoint untuk mendapatkan notifikasi
-    Route::get('/notifications', [NotificationController::class, 'index']);
-
-    // Endpoint untuk menandai notifikasi sebagai sudah dibaca
-    Route::post('/notifications/mark-as-read/{notification}', [NotificationController::class, 'markAsRead']);
-
+    
+    /** 
+     * Endpoint data akun user untuk role admin
+     */
     Route::get('/akun/siswa/{classId}', [UserController::class, 'getSiswaUsers'])->middleware(['permission:users.view', 'role:admin']);
     Route::post('/akun/guru', [UserController::class, 'getTeacherData'])->middleware(['permission:users.view', 'role:admin']);
     Route::get('/akun/admin', [UserController::class, 'getAdminUsers'])->middleware(['permission:users.view', 'role:admin']);
-    Route::get('/akun/pengurus_kelas', [UserController::class, 'getPengurusKelasUsers'])->middleware(['permission:users.view', 'role:admin']);
+    Route::get('/akun/pengurus_kelas/{idKelas}', [UserController::class, 'getPengurusKelasUsers'])->middleware(['permission:users.view', 'role:admin']);
+
+
+    /**
+     * Endpoint Notifikasi
+     */
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'index']);
+
+        // tandai notifikasi telah dibaca spesifik per id notifikasi yang dikirim pada body request
+        Route::post('/mark-as-read', [NotificationController::class, 'markAsRead']);
+    
+        // tandai semua notifikasi telah dibaca
+        Route::post('/mark-all-as-read', [NotificationController::class, 'markAllAsRead']);
+    
+        // hapus notifikasi per id notifikasi yang dikirim pada body request
+        Route::post('/deletePerId', [NotificationController::class, 'deleteNotificationPerId']);
+    
+        // hapus semua notifikasi
+        Route::delete('/deleteAll', [NotificationController::class, 'deleteAllNotifications']);
+    });
+   
 });

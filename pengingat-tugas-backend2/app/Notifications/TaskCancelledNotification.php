@@ -33,7 +33,10 @@ class TaskCancelledNotification extends Notification
      */
     public function via($notifiable)
     {
-        return ['mail', 'database'];
+        return [
+        // 'mail',
+        'database'
+    ];
     }
 
     /**
@@ -61,8 +64,13 @@ class TaskCancelledNotification extends Notification
     public function toArray($notifiable)
     {
         return [
-            'oldTaskData_id' => $this->oldTaskData->id,
-            'message' => 'Tugas dibatalkan: ' . $this->oldTaskData->getOriginal('title'),
+            'judul' => 'Pembatalan Tugas "' . $this->oldTaskData->getOriginal('title') . '"',
+            'Keterangan' => 'Tugas "' . $this->oldTaskData->getOriginal('title') . '"' . ' dari Guru ' . $this->oldTaskData->getOriginal('teacher_name') . ' telah dibatalkan.',
+            'data_tugas' => [
+                'judul_tugas' => $this->oldTaskData->getOriginal('title'),
+                'deskripsi_tugas' => $this->oldTaskData->getOriginal('description'),
+                'deadline' => $this->oldTaskData->getOriginal('deadline')
+            ]
         ];
     }
 }

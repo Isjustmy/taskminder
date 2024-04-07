@@ -300,9 +300,9 @@ export default {
           this.barChartData.labels = this.totalTasks.data.map((task) => task.subject)
           this.barChartData.datasets[0].data = this.totalTasks.data.map((task) => task.count)
         }
-      } else {
+      } // else {
         // tes
-      }
+      // }
     } else {
       console.error('Tidak ada data otentikasi')
       this.$router.push({ name: 'login' })
