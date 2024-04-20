@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\IdentifierController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\CheckAdminRole;
@@ -35,6 +36,11 @@ Route::get('/getData', [App\Http\Controllers\UserController::class, 'getClassAnd
 Route::post('password/email', [UserController::class, 'sendResetLink'])->name('password.email');
 
 Route::post('password/reset', [UserController::class, 'resetPassword'])->name('password.reset');
+
+Route::get('/rekapitulasi/{teacherId}/{idKelas}', [TaskController::class, 'exportTaskScore']);
+
+Route::post('/import/nisn', [IdentifierController::class, 'importNISN']);
+Route::post('/import/nip', [IdentifierController::class, 'importNIP']);
 
 // Apply auth:api middleware to all routes
 Route::middleware('auth:api')->group(function () {

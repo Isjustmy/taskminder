@@ -112,63 +112,53 @@ export default {
       this.$router.go(-1)
     },
     formattedUserRoles() {
-      if (this.dataUser && this.dataUser.roles && this.dataUser.roles.length > 0) {
-        // Ambil nama peran dari setiap objek peran dalam array roles
-        const roleNames = this.dataUser.roles.map(role => {
-          // Mengubah nama peran dengan menghilangkan underscore dan menambahkan awalan kapital
-          return role.name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-        });
-
-        // Jika pengguna memiliki lebih dari satu peran, gabungkan nama peran dengan "dan"
-        if (roleNames.length > 1) {
-          return roleNames.join(" dan ");
-        } else {
-          return roleNames[0];
-        }
-      } else {
+      if (!this.dataUser.roles || this.dataUser.roles.length === 0) {
         return "Tidak ada peran";
       }
+      const roleNames = this.dataUser.roles.map(role =>
+        role.name.split('_')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ')
+      );
+      return roleNames.join(" dan ");
     },
     async getUserData() {
-      this.loadingData = true
+      this.loadingData = true;
       try {
-        const response = await api.get('/api/user/current')
-        this.loadingData = false
-        this.dataUser = response.data.data
+        const response = await api.get('/api/user/current');
+        this.dataUser = response.data.data;
       } catch (error) {
-        this.loadingData = false
-        this.errorOccurred = true;
+        this.handleError(error);
+      } finally {
+        this.loadingData = false;
+      }
+    },
+    handleError(error) {
+      this.errorOccurred = true;
+      let errorMessage = 'Terjadi kesalahan. Coba lagi nanti.';
+      if (error.response) {
         switch (error.response.status) {
           case 401:
-            console.log('Kesalahan dalam mengambil data user: ' + error.response.message)
-            this.toast.error('Kesalahan Autentikasi. Harap login ulang', {
-              position: 'top-center',
-              timeout: 2000
-            })
-            this.$router.push({ name: 'login' })
+            errorMessage = 'Kesalahan Autentikasi. Harap login ulang';
+            this.$router.push({ name: 'login' });
             break;
           case 404:
-            console.log('Terjadi kesalahan dalam mengambil data user: ' + error.response.message)
-            this.toast.error('Terjadi Kesalahan Dalam Mengambil Data User. Coba lagi nanti', {
-              position: 'top-center',
-              timeout: 2000
-            })
+            errorMessage = 'Data user tidak ditemukan.';
             break;
           case 500:
-            console.log('Terjadi kesalahan server: ' + error.response.message)
-            this.toast.error('Terjadi Kesalahan server. Coba lagi nanti', {
-              position: 'top-center',
-              timeout: 2000
-            })
+            errorMessage = 'Terjadi Kesalahan server.';
             break;
         }
-      } finally {
-        this.loadingData = false
       }
+      console.error('Error fetching user data:', error.message);
+      this.toast.error(errorMessage, {
+        position: 'top-center',
+        timeout: 2000
+      });
     }
   },
   async created() {
-    await this.getUserData()
+    await this.getUserData();
   }
 }
 </script>
