@@ -5,24 +5,17 @@
     <div v-if="isLoading" class="text-center mt-4">Memuat...</div>
     <!-- Tampilkan pesan Memuat -->
     <div v-else-if="sortedTasks.length > 0" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div
-        v-for="(task, index) in sortedTasks"
-        :key="task.id"
-        :class="{
-          'bg-green-800': isGradedAndSubmitted(task.submission_info),
-          'bg-green-500': task.submission_info && task.submission_info.is_submitted === 1,
-          'bg-red-500': isDeadlineApproaching(task.deadline, 3) || isDeadlineToday(task.deadline),
-          'bg-yellow-500':
-            isDeadlineApproaching(task.deadline, 6) && !isDeadlineApproaching(task.deadline, 3),
-          'bg-gray-800':
-            !isDeadlineApproaching(task.deadline, 6) && !isSubmitted(task.submission_info)
-        }"
-        class="w-full border border-gray-200 rounded-lg shadow"
-      >
+      <div v-for="(task, index) in sortedTasks" :key="task.id" :class="{
+      'bg-green-800': isGradedAndSubmitted(task.submission_info),
+      'bg-green-500': task.submission_info && task.submission_info.is_submitted === 1,
+      'bg-red-500': isDeadlineApproaching(task.deadline, 3) || isDeadlineToday(task.deadline),
+      'bg-yellow-500':
+        isDeadlineApproaching(task.deadline, 6) && !isDeadlineApproaching(task.deadline, 3),
+      'bg-gray-800':
+        !isDeadlineApproaching(task.deadline, 6) && !isSubmitted(task.submission_info)
+    }" class="w-full border border-gray-200 rounded-lg shadow">
         <div class="p-6">
-          <h1
-            class="mb-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white text-center"
-          >
+          <h1 class="mb-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white text-center">
             {{ task.title }}
           </h1>
           <p class="text-white text-center mb-3">
@@ -38,14 +31,10 @@
         </div>
       </div>
     </div>
-    <div
-      v-else
-      class="w-full bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700"
-    >
+    <div v-else
+      class="w-full bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
       <div class="p-6">
-        <h1
-          class="mb-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white text-center"
-        >
+        <h1 class="mb-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white text-center">
           Tidak Ada Data Tugas
         </h1>
       </div>
@@ -54,9 +43,9 @@
 </template>
 
 <script>
-import Cookies from 'js-cookie'
-import api from '@/services/api'
-import { useToast } from 'vue-toastification'
+import Cookies from 'js-cookie';
+import api from '@/services/api';
+import { useToast } from 'vue-toastification';
 
 export default {
   data() {
@@ -67,68 +56,68 @@ export default {
       sortedTasks: [],
       isLoading: false, // Tambahkan properti isLoading
       errorMessage: ''
-    }
+    };
   },
   computed: {
     userData() {
-      const userData = Cookies.get('userData')
-      return userData ? JSON.parse(userData) : null
+      const userData = Cookies.get('userData');
+      return userData ? JSON.parse(userData) : null;
     }
   },
   async created() {
-    const toast = useToast()
+    const toast = useToast();
 
-    const userData = this.userData
+    const userData = this.userData;
     if (userData) {
-      this.user = userData.user || {}
-      this.role = userData.roles || []
-      await this.fetchTasks()
+      this.user = userData.user || {};
+      this.role = userData.roles || [];
+      await this.fetchTasks();
     } else {
-      this.$router.push({ name: 'login' })
-      return
+      this.$router.push({ name: 'login' });
+      return;
     }
   },
   methods: {
     async fetchTasks() {
-      this.isLoading = true // Set isLoading ke true saat memulai pengambilan data
+      this.isLoading = true; // Set isLoading ke true saat memulai pengambilan data
       try {
-        const response = await api.get('/api/tasks/murid')
+        const response = await api.get('/api/tasks/murid');
         if (response.status === 200) {
-          const responseData = response.data
+          const responseData = response.data;
           if (responseData.success) {
-            this.tasks = responseData.data
-            this.sortTasks()
+            this.tasks = responseData.data;
+            this.sortTasks();
           } else {
-            console.error('Error fetching tasks:', responseData)
-            this.errorMessage = 'Gagal mengambil data tugas'
+            console.error('Error fetching tasks:', responseData);
+            this.errorMessage = 'Gagal mengambil data tugas';
           }
         } else if (response.status === 401) {
-          console.error('Error fetching tasks:', response)
-          this.$router.push({ name: 'login' })
-          this.errorMessage = 'Terjadi error. Harap login ulang'
+          console.error('Error fetching tasks:', response);
+          this.$router.push({ name: 'login' });
+          this.errorMessage = 'Terjadi error. Harap login ulang';
         } else {
-          console.error('Unexpected error occurred:', response)
-          this.errorMessage = 'Terjadi kesalahan yang tidak terduga. Silakan coba lagi nanti'
+          console.error('Unexpected error occurred:', response);
+          this.errorMessage = 'Terjadi kesalahan yang tidak terduga. Silakan coba lagi nanti';
         }
       } catch (error) {
-        console.error('Error fetching tasks:', error)
-        this.errorMessage = 'Terjadi kesalahan saat mengambil data tugas'
+        console.error('Error fetching tasks:', error);
+        this.errorMessage = 'Terjadi kesalahan saat mengambil data tugas';
       } finally {
-        this.isLoading = false // Set isLoading kembali ke false setelah selesai pengambilan data
+        this.isLoading = false; // Set isLoading kembali ke false setelah selesai pengambilan data
       }
     },
     sortTasks() {
       // Urutkan tugas berdasarkan deadline
-      this.sortedTasks = this.tasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
+      this.sortedTasks = this.tasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
     },
     truncateDescription(description) {
       // Fungsi untuk memotong deskripsi tugas
-      const maxWords = 7 // Jumlah maksimal kata yang ingin ditampilkan
-      const words = description.split(' ')
+      const maxWords = 7; // Jumlah maksimal kata yang ingin ditampilkan
+      const words = description.split(' ');
       if (words.length > maxWords) {
-        return words.slice(0, maxWords).join(' ') + '...' // Potong deskripsi dan tambahkan elipsis
+        return words.slice(0, maxWords).join(' ') + '...'; // Potong deskripsi dan tambahkan elipsis
       } else {
-        return description // Kembalikan deskripsi asli jika tidak perlu dipotong
+        return description; // Kembalikan deskripsi asli jika tidak perlu dipotong
       }
     },
     formatDate(dateString) {
@@ -140,8 +129,8 @@ export default {
         hour: 'numeric',
         minute: 'numeric',
         second: 'numeric'
-      }
-      return new Date(dateString).toLocaleDateString('id-ID', options)
+      };
+      return new Date(dateString).toLocaleDateString('id-ID', options);
     },
     isGradedAndSubmitted(submissionInfo) {
       if (submissionInfo && Array.isArray(submissionInfo)) {
@@ -151,51 +140,54 @@ export default {
             submission.score?.trim() !== '' && // Memeriksa apakah score tidak kosong atau tidak hanya berisi spasi
             submission.feedback_content?.trim() !== '' // Memeriksa apakah feedback_content tidak kosong atau tidak hanya berisi spasi
           ) {
-            return true
+            return true;
           }
         }
       }
-      return false
+      return false;
     },
     isSubmitted(submissionInfo) {
       if (submissionInfo && Array.isArray(submissionInfo)) {
         for (const submission of submissionInfo) {
           if (submission.is_submitted === 1) {
-            return true
+            return true;
           }
         }
       }
-      return false
+      return false;
     },
     isGraded(submissionInfo) {
-      return submissionInfo && submissionInfo.score !== null ? 'Ya' : 'Belum'
+      return submissionInfo && submissionInfo.score !== null ? 'Ya' : 'Belum';
     },
     hasFeedback(submissionInfo) {
-      return submissionInfo && submissionInfo.feedback_content !== null ? 'Ya' : 'Belum'
+      return submissionInfo && submissionInfo.feedback_content !== null ? 'Ya' : 'Belum';
     },
     isDeadlineToday(deadline) {
-      const today = new Date().setHours(0, 0, 0, 0)
-      return new Date(deadline).setHours(0, 0, 0, 0) === today
+      const today = new Date().setHours(0, 0, 0, 0);
+      return new Date(deadline).setHours(0, 0, 0, 0) === today;
     },
     isDeadlineApproaching(deadline, daysAhead) {
-      const today = new Date().setHours(0, 0, 0, 0)
-      const deadlineDate = new Date(deadline).setHours(0, 0, 0, 0)
-      const deadlineThreshold = new Date(today)
-      deadlineThreshold.setDate(deadlineThreshold.getDate() + daysAhead)
-      return deadlineDate <= deadlineThreshold
+      const today = new Date().setHours(0, 0, 0, 0);
+      const deadlineDate = new Date(deadline).setHours(0, 0, 0, 0);
+      const deadlineThreshold = new Date(today);
+      deadlineThreshold.setDate(deadlineThreshold.getDate() + daysAhead);
+      return deadlineDate <= deadlineThreshold;
     }
   }
-}
+};
 </script>
 
 <style>
 .bg-green-500 {
   background-color: #34d399 !important;
 }
+
 .bg-green-800 {
   background-color: #08a102 !important;
 }
+
 .bg-green-300 {
-  background-color: #a7f3d0 !important; /* Hijau muda */
+  background-color: #a7f3d0 !important;
+  /* Hijau muda */
 }
 </style>

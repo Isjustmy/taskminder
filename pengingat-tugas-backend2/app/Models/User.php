@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -97,4 +98,15 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasOne(TeacherIdentifier::class, 'teacher_id');
     }
+
+    public function userTokenFcm(): HasMany
+    {
+        return $this->hasMany(UserTokenFcm::class);
+    }
+    
+    public function routeNotificationForFCM($notification): string|array|null
+    {
+         return $this->userTokenFcm()->pluck('token')->toArray();
+    }
+
 }

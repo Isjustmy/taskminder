@@ -58,6 +58,8 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/create', [UserController::class, 'store'])->middleware('permission:users.store');
         Route::put('/{id}/update', [UserController::class, 'update'])->middleware('permission:users.edit');
         Route::delete('/{id}', [UserController::class, 'destroy'])->middleware('permission:users.delete');
+
+        Route::post('/storeTokenFcm', [UserController::class, 'storeUserTokenFcm']);
     });
 
 

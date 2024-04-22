@@ -3,37 +3,16 @@
     <div class="navbar-start">
       <div class="dropdown">
         <div tabIndex="{0}" role="button" class="btn btn-ghost lg:hidden">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M4 6h16M4 12h8m-8 6h16"
-            />
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h8m-8 6h16" />
           </svg>
         </div>
-        <ul
-          tabIndex="{0}"
-          class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52"
-        >
+        <ul tabIndex="{0}" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
           <li>
-            <a href="#home" :class="{ active: sections.home }" @click="setActiveSection('home')"
-              >Home</a
-            >
+            <a href="#home" :class="{ active: sections.home }" @click="setActiveSection('home')">Home</a>
           </li>
           <li>
-            <a
-              href="#aboutus"
-              :class="{ active: sections.aboutus }"
-              @click="setActiveSection('aboutus')"
-              >Tentang</a
-            >
+            <a href="#aboutus" :class="{ active: sections.aboutus }" @click="setActiveSection('aboutus')">Tentang</a>
           </li>
         </ul>
       </div>
@@ -42,20 +21,11 @@
     <div class="navbar-center hidden lg:flex">
       <ul class="menu menu-horizontal px-1">
         <li>
-          <a
-            href="#home"
-            :class="{ active: activeSection === 'home' }"
-            @click="setActiveSection('home')"
-            >Home</a
-          >
+          <a href="#home" :class="{ active: activeSection === 'home' }" @click="setActiveSection('home')">Home</a>
         </li>
         <li>
-          <a
-            href="#aboutus"
-            :class="{ active: activeSection === 'aboutus' }"
-            @click="setActiveSection('aboutus')"
-            >Tentang</a
-          >
+          <a href="#aboutus" :class="{ active: activeSection === 'aboutus' }"
+            @click="setActiveSection('aboutus')">Tentang</a>
         </li>
       </ul>
     </div>
@@ -123,29 +93,29 @@ export default {
         aboutus: false,
         // Tambahkan lebih banyak bagian jika diperlukan
       }
-    }
+    };
   },
   methods: {
     setActiveSection(section) {
-      this.activeSection = section
+      this.activeSection = section;
       // Set bagian lain menjadi tidak aktif
       for (const key in this.sections) {
-        this.sections[key] = key === section
+        this.sections[key] = key === section;
       }
     },
     handleScroll() {
-      const scrollPosition = window.scrollY
+      const scrollPosition = window.scrollY;
 
       for (const key in this.sections) {
-        const sectionElement = document.getElementById(key)
+        const sectionElement = document.getElementById(key);
         if (sectionElement) {
-          const sectionOffset = sectionElement.offsetTop
-          const sectionHeight = sectionElement.clientHeight
+          const sectionOffset = sectionElement.offsetTop;
+          const sectionHeight = sectionElement.clientHeight;
 
           // Sesuaikan dengan offset dan tinggi setiap bagian
           if (scrollPosition >= sectionOffset && scrollPosition < sectionOffset + sectionHeight) {
             // Set bagian yang aktif
-            this.activeSection = key
+            this.activeSection = key;
           }
         }
       }
@@ -153,23 +123,23 @@ export default {
   },
   mounted() {
     // Menambahkan event listener pada scroll saat komponen dimount
-    window.addEventListener('scroll', this.handleScroll)
+    window.addEventListener('scroll', this.handleScroll);
 
     // Mendapatkan semua elemen dengan class 'section' dan menambahkannya ke objek sections
-    const sectionElements = document.getElementsByClassName('section')
+    const sectionElements = document.getElementsByClassName('section');
     for (let i = 0; i < sectionElements.length; i++) {
-      const sectionId = sectionElements[i].id
-      this.sections[sectionId] = false
+      const sectionId = sectionElements[i].id;
+      this.sections[sectionId] = false;
     }
 
     // Memanggil handleScroll untuk menetapkan status awal
-    this.handleScroll()
+    this.handleScroll();
   },
   beforeDestroy() {
     // Menghapus event listener pada scroll saat komponen di-unmount
-    window.removeEventListener('scroll', this.handleScroll)
+    window.removeEventListener('scroll', this.handleScroll);
   }
-}
+};
 </script>
 
 <style></style>

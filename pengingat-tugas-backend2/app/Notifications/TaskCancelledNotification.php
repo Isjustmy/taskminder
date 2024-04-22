@@ -7,6 +7,8 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Kreait\Firebase\Messaging\CloudMessage;
+use NotificationChannels\FCM\FCMChannel;
 
 class TaskCancelledNotification extends Notification
 {
@@ -24,7 +26,7 @@ class TaskCancelledNotification extends Notification
     {
         $this->oldTaskData = $oldTaskData;
     }
-    
+
     /**
      * Get the notification's delivery channels.
      *
@@ -34,9 +36,10 @@ class TaskCancelledNotification extends Notification
     public function via($notifiable)
     {
         return [
-        // 'mail',
-        'database'
-    ];
+            // 'mail',
+            'database',
+            FCMChannel::class
+        ];
     }
 
     /**
@@ -53,6 +56,24 @@ class TaskCancelledNotification extends Notification
             ->line('Judul Tugas: ' . $this->oldTaskData->getOriginal('title'))
             ->line('Deskripsi Tugas: ' . $this->oldTaskData->getOriginal('description'))
             ->line('Deadline: ' . $this->oldTaskData->getOriginal('deadline'));
+    }
+
+    public function toFCM($notifiable): CloudMessage
+    {
+        return CloudMessage::new()
+            ->withDefaultSounds()
+            ->withNotification([
+                'title' => 'Pemberitahuan: Pembatalan Tugas',
+                'body' => 'Tugas "' . $this->oldTaskData->getOriginal('title') . '" telah dibatalkan',
+                'icon' => '../../public/assets/taskminder_logo 1 (mini 150x150).png'
+            ])
+            ->withData([
+                // Tambahkan informasi yang sesuai dengan template notifikasi di sini
+                'title' => 'Pemberitahuan: Pembatalan Tugas',
+                'body' => 'Tugas "' . $this->oldTaskData->getOriginal('title') . '" dari Guru ' . $this->oldTaskData->getOriginal('teacher_name') . ' telah dibatalkan.',
+                'deadline' => $this->oldTaskData->getOriginal('deadline'),
+                'priority' => 'high'
+            ]);
     }
 
     /**

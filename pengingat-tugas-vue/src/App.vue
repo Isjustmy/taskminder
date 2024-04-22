@@ -5,17 +5,19 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
-import { IStaticMethods } from 'preline/preline'
+import { onMounted } from 'vue';
+import { IStaticMethods } from 'preline/preline';
 
-// Call HSStaticMethods.autoInit() after the component is mounted
 onMounted(() => {
   setTimeout(() => {
     if (window.HSStaticMethods) {
-      window.HSStaticMethods.autoInit()
+      window.HSStaticMethods.autoInit();
     }
-  }, 100)
-})
+  }, 100);
+
+});
 </script>
 
-<style></style>
+<style>
+/* CSS Anda dapat ditambahkan di sini */
+</style>

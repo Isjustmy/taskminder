@@ -44,7 +44,7 @@
                     </div>
                   </li>
                   <li>
-                      <h1>Tes 2</h1>
+                    <h1>Tes 2</h1>
                   </li>
                 </ul>
               </div>
@@ -81,8 +81,7 @@
                 <div class="mt-2 py-2 first:pt-0 last:pb-0">
                   <router-link
                     class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500"
-                    :to="{name: 'profil_user'}"
-                  >
+                    :to="{ name: 'profil_user' }">
                     <font-awesome-icon icon="user" class="mr-0.5 ml-0.5" />
                     Profil
                   </router-link>
@@ -415,9 +414,23 @@
 </template>
 
 <script>
-import Api from '@/services/api' // Adjust the path based on your project structure
-import Cookies from 'js-cookie'
-import { useToast } from 'vue-toastification'
+import Api from '@/services/api'; // Adjust the path based on your project structure
+import Cookies from 'js-cookie';
+import { useToast } from 'vue-toastification';
+import { initializeApp } from "firebase/app";
+import { getMessaging, getToken } from "firebase/messaging";
+
+// Initialize Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBPCaJiRBdeUk7I3AMxhlBbS74RZf60cN0",
+  authDomain: "taskminder-d69cf.firebaseapp.com",
+  projectId: "taskminder-d69cf",
+  storageBucket: "taskminder-d69cf.appspot.com",
+  messagingSenderId: "813176388039",
+  appId: "1:813176388039:web:9338ee28697c9f738481e2",
+  measurementId: "G-Q9TP6NHKXT"
+};
+const app = initializeApp(firebaseConfig);
 
 export default {
   data() {
@@ -426,92 +439,146 @@ export default {
       role: '',
       loading: false,
       isNotificationDropdownOpen: false
-    }
+    };
   },
   computed: {
     userData() {
-      const userData = Cookies.get('userData')
-      return userData ? JSON.parse(userData) : null
+      const userData = Cookies.get('userData');
+      return userData ? JSON.parse(userData) : null;
     },
     userPermissions() {
-      return this.userData ? this.userData.permissions || {} : {}
+      return this.userData ? this.userData.permissions || {} : {};
     },
     formattedUserRoles() {
-      if (!this.userData || !this.userData.roles || this.userData.roles.length === 0) return ''
+      if (!this.userData || !this.userData.roles || this.userData.roles.length === 0) return '';
       return this.userData.roles
         .map((role) => {
           if (role === 'pengurus_kelas') {
-            return 'Pengurus Kelas'
+            return 'Pengurus Kelas';
           } else {
-            return role.charAt(0).toUpperCase() + role.slice(1)
+            return role.charAt(0).toUpperCase() + role.slice(1);
           }
         })
-        .join(' dan ')
+        .join(' dan ');
     }
   },
   mounted() {
-    this.fetchDashboardData()
+    const messaging = getMessaging();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('../../public/firebase-messaging-sw.js')
+        .then((registration) => {
+          console.log('Service Worker registered:', registration);
+          // Setelah service worker terdaftar, Anda dapat mengambil token
+          getToken(messaging, { vapidKey: 'BJFqzNlnNQMraDpjOQyMtiYMbvfw5Yagblplg9EnTm__MF-ehmFO0JDo8l5K0U3mvKorkQfGeLYHw1zdi3M9iaE' })
+            .then((currentToken) => {
+              if (currentToken) {
+                // Cek apakah token sudah tersimpan sebelumnya
+                const storedToken = localStorage.getItem('userToken');
+                if (!storedToken || storedToken !== currentToken) {
+                  // Jika token belum pernah diterima sebelumnya atau token berbeda,
+                  // kirim token baru ke backend
+                  this.sendToken(currentToken);
+                }
+                // Simpan token di localStorage untuk penggunaan selanjutnya
+                localStorage.setItem('userToken', currentToken);
+              } else {
+                console.log('No registration token available.');
+              }
+            })
+            .catch((err) => {
+              console.log('An error occurred while retrieving token:', err);
+            });
+        })
+        .catch((error) => {
+          console.error('Service Worker registration failed:', error);
+        });
+    } else {
+      console.log('Service Worker is not supported in this browser.');
+    }
+    this.fetchDashboardData();
   },
   methods: {
+    // TODO: ubah logic dan skema pengiriman token FCM User
+    async sendToken(userToken) {
+      // memproses informasi untuk dikirimkan bersama dengan token FCM ke backend
+      const parseData = JSON.parse(Cookies.get('userData'));
+      const getEmailUser = parseData.user.email;
+      const userTokenData = {
+        email: getEmailUser,
+        token: userToken
+      };
+
+      // kirim data informasi user dan token ke backend
+      try {
+        const response = await Api.post('/api/user/storeTokenFcm', userTokenData);
+        if (response.status === 200) {
+          console.log('berhasil mengirimkan token fcm')
+        }
+      } catch (error) {
+        if (error.response.status === 500) {
+          console.log('gagal mengirimkan token fcm')
+        }
+      }
+    },
     toggleNotificationDropdown() {
-      this.isNotificationDropdownOpen = !this.isNotificationDropdownOpen
+      this.isNotificationDropdownOpen = !this.isNotificationDropdownOpen;
     },
     openLogoutModal() {
       // Use whichever method is suitable for your modal library to show the modal
       // For example, if you are using <dialog> element:
-      document.getElementById('logout-modal').showModal()
+      document.getElementById('logout-modal').showModal();
     },
     closeLogoutModal() {
       // Use whichever method is suitable for your modal library to close the modal
       // For example, if you are using <dialog> element:
-      document.getElementById('logout-modal').close()
+      document.getElementById('logout-modal').close();
     },
     logout() {
-      this.loading = true
+      this.loading = true;
 
       Api.post('/api/logout')
         .then(() => {
-          sessionStorage.removeItem('tokenJWT')
-          sessionStorage.removeItem('isLoggedIn')
-          Cookies.remove('userData')
-          const toast = useToast()
+          sessionStorage.removeItem('tokenJWT');
+          sessionStorage.removeItem('isLoggedIn');
+          Cookies.remove('userData');
+          const toast = useToast();
           toast.success('Logout Berhasil', {
             position: 'top-center',
             timeout: 1500
-          })
+          });
 
           setTimeout(() => {
-            this.loading = false
-            this.$router.push({ name: 'landing' })
-          }, 1000)
+            this.loading = false;
+            this.$router.push({ name: 'landing' });
+          }, 1000);
 
           // Close the modal after successful logout
-          this.closeLogoutModal()
+          this.closeLogoutModal();
         })
         .catch((error) => {
-          this.loading = false
-          console.error('Error during logout:', error)
-          const toast = useToast()
+          this.loading = false;
+          console.error('Error during logout:', error);
+          const toast = useToast();
           toast.error('Logout Gagal', {
             position: 'top-center',
             timeout: 1000
-          })
+          });
 
           // Close the modal on logout failure if necessary
-          this.closeLogoutModal()
-        })
+          this.closeLogoutModal();
+        });
     },
     fetchDashboardData() {
       if (this.userData) {
-        this.user = this.userData.user || {}
+        this.user = this.userData.user || {};
         this.role =
-          this.userData.roles && this.userData.roles.length > 0 ? this.userData.roles[0] : '' // Ensure roles is an array
+          this.userData.roles && this.userData.roles.length > 0 ? this.userData.roles[0] : ''; // Ensure roles is an array
       } else {
-        this.fetchUserData()
+        this.fetchUserData();
       }
     }
   }
-}
+};
 </script>
 
 <style></style>

@@ -95,8 +95,8 @@
 </template>
 
 <script>
-import api from '@/services/api.js'
-import { useToast } from 'vue-toastification'
+import api from '@/services/api.js';
+import { useToast } from 'vue-toastification';
 
 export default {
   data() {
@@ -105,11 +105,11 @@ export default {
       loadingData: false,
       errorOccurred: false,
       toast: useToast()
-    }
+    };
   },
   methods: {
     goBack() {
-      this.$router.go(-1)
+      this.$router.go(-1);
     },
     formattedUserRoles() {
       if (!this.dataUser.roles || this.dataUser.roles.length === 0) {
@@ -160,7 +160,7 @@ export default {
   async created() {
     await this.getUserData();
   }
-}
+};
 </script>
 
 <style></style>

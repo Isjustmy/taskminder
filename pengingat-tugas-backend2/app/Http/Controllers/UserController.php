@@ -12,6 +12,7 @@ use App\Models\StudentIdentifier;
 use App\Models\StudentTasks;
 use App\Models\Task;
 use App\Models\TeacherIdentifier;
+use App\Models\UserTokenFcm;
 use App\Notifications\TaskNotification;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -26,6 +27,47 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
+    public function storeUserTokenFcm(Request $request)
+    {
+        $user = Auth::user();
+
+        // Validasi request
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|exists:users,email',
+            'token' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 400);
+        }
+
+        // Untuk mencegah terjadinya celah user/orang lain dapat memasukan token sembarangan kepada user lain.
+        // Bandingkan email pengguna yang sedang login dengan email dalam permintaan
+        if ($user->email !== $request->email) {
+            return response()->json(['error' => 'Email tidak sesuai dengan pengguna yang sedang login'], 403);
+        }
+
+        // Temukan user berdasarkan email
+        $getUserId = User::where('email', $request->email)->first();
+
+        if (!$getUserId) {
+            return response()->json(['error' => 'User tidak ditemukan'], 404);
+        }
+
+        // Perbarui token FCM user
+        $userTokenFcm = UserTokenFcm::updateOrCreate(
+            ['user_id' => $getUserId->id],
+            ['token' => $request->token]
+        );
+
+        if ($userTokenFcm) {
+            return response()->json(['message' => 'Token FCM berhasil dimasukkan/diperbarui'], 200);
+        }
+
+        return response()->json(['error' => 'Terjadi kesalahan saat memperbarui token FCM'], 500);
+    }
+
+
     public function getAdminUsers()
     {
         try {
