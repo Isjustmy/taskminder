@@ -36,7 +36,7 @@ class TaskCancelledNotification extends Notification
     public function via($notifiable)
     {
         return [
-            // 'mail',
+            'mail',
             'database',
             FCMChannel::class
         ];
@@ -54,8 +54,7 @@ class TaskCancelledNotification extends Notification
             ->subject('Pemberitahuan: Pembatalan Tugas')
             ->line('Tugas berikut telah dibatalkan:')
             ->line('Judul Tugas: ' . $this->oldTaskData->getOriginal('title'))
-            ->line('Deskripsi Tugas: ' . $this->oldTaskData->getOriginal('description'))
-            ->line('Deadline: ' . $this->oldTaskData->getOriginal('deadline'));
+            ->line('Deskripsi Tugas: ' . $this->oldTaskData->getOriginal('description'));
     }
 
     public function toFCM($notifiable): CloudMessage
@@ -64,14 +63,13 @@ class TaskCancelledNotification extends Notification
             ->withDefaultSounds()
             ->withNotification([
                 'title' => 'Pemberitahuan: Pembatalan Tugas',
-                'body' => 'Tugas "' . $this->oldTaskData->getOriginal('title') . '" telah dibatalkan',
+                'body' => 'Tugas "' . $this->oldTaskData->getOriginal('title') . '" telah dibatalkan.',
                 'icon' => '../../public/assets/taskminder_logo 1 (mini 150x150).png'
             ])
             ->withData([
                 // Tambahkan informasi yang sesuai dengan template notifikasi di sini
                 'title' => 'Pemberitahuan: Pembatalan Tugas',
-                'body' => 'Tugas "' . $this->oldTaskData->getOriginal('title') . '" dari Guru ' . $this->oldTaskData->getOriginal('teacher_name') . ' telah dibatalkan.',
-                'deadline' => $this->oldTaskData->getOriginal('deadline'),
+                'body' => 'Tugas "' . $this->oldTaskData->getOriginal('title') . '" telah dibatalkan',
                 'priority' => 'high'
             ]);
     }
@@ -90,7 +88,6 @@ class TaskCancelledNotification extends Notification
             'data_tugas' => [
                 'judul_tugas' => $this->oldTaskData->getOriginal('title'),
                 'deskripsi_tugas' => $this->oldTaskData->getOriginal('description'),
-                'deadline' => $this->oldTaskData->getOriginal('deadline')
             ]
         ];
     }
