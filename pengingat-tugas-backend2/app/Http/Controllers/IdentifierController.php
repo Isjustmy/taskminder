@@ -108,7 +108,7 @@ class IdentifierController extends Controller
             }
 
             if (!empty($duplicateNISNs)) {
-                return response()->json(['success' => 'Import berhasil, namun terdapat duplikasi data NISN yang tidak dimasukan kedalam database']);
+                return response()->json(['success' => 'Import berhasil, namun terdapat duplikasi data NISN atau terdapat data NISN yang sudah ada pada database. Data NISN yang sudah ada pada database tidak akan dimasukan, data NISN lainnya akan tetap dimasukan.']);
             } else {
                 return response()->json(['success' => 'Data NISN berhasil di-import!']);
             }
@@ -171,4 +171,8 @@ class IdentifierController extends Controller
             return response()->json(['error' => 'Terjadi kesalahan dalam mengimpor data NIP: ' . $e->getMessage()]);
         }
     }
+
+    
+
+
 }

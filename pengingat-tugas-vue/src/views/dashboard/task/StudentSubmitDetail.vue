@@ -13,7 +13,7 @@
     <div class="mt-7 ml-4 flex">
       <div class="w-1/2">
         <div>
-          <h1 class="font-bold text-xl">File Submit Tugas Anda</h1>
+          <h1 class="font-bold text-xl">File Submit Tugas Siswa</h1>
           <div
             class="ml-4 mt-5 bg-gray-300 rounded-lg w-[80%] h-[370px] flex items-center justify-center cursor-pointer"
             @click="handleFileClick()">

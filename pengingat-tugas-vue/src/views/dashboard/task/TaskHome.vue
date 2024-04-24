@@ -25,8 +25,8 @@
               <td class="text-wrap">{{ task.title }}</td>
               <td class="text-wrap truncate-description">{{ task.description }}</td>
               <td class="text-center">{{ task.class.class_name }}</td>
-              <td class="text-center">{{ task.created_at }}</td>
-              <td class="text-center">{{ task.deadline }}</td>
+              <td class="text-center">{{ formatDate(task.created_at) }}</td>
+              <td class="text-center">{{ formatDate(task.deadline) }}</td>
               <td>
                 <router-link class="btn btn-neutral text-white" :to="{ name: 'task_detail', params: { taskId: task.id } }">Detail</router-link>
               </td>
@@ -71,8 +71,8 @@
               <td class="text-wrap">{{ task.title }}</td>
               <td class="text-wrap truncate-description">{{ task.description }}</td>
               <td class="text-center">{{ task.class.class_name }}</td>
-              <td class="text-center">{{ task.created_at }}</td>
-              <td class="text-center">{{ task.deadline }}</td>
+              <td class="text-center">{{ formatDate(task.created_at) }}</td>
+              <td class="text-center">{{ formatDate(task.deadline) }}</td>
               <td>
                 <router-link class="btn btn-neutral text-white" :to="{ name: 'task_detail', params: { taskId: task.id } }">Detail</router-link>
               </td>
@@ -96,6 +96,7 @@
 import { useToast } from 'vue-toastification'
 import Cookies from 'js-cookie'
 import api from '@/services/api'
+import dateFormater from '@/date/date_formatter'
 
 export default {
   data() {
@@ -113,6 +114,9 @@ export default {
     }
   },
   methods: {
+    formatDate(date) {
+      return dateFormater(date);
+    },
     async fetchTeacherTasks() {
       this.loadingData = true;
       try {

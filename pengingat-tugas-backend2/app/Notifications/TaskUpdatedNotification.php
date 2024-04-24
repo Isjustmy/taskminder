@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notification;
 use NotificationChannels\FCM\FCMChannel;
 use Kreait\Firebase\Messaging\CloudMessage;
 
-class TaskUpdatedNotification extends Notification
+class TaskUpdatedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -33,11 +33,7 @@ class TaskUpdatedNotification extends Notification
      */
     public function via($notifiable)
     {
-        return [
-            'mail',
-            'database',
-            FCMChannel::class
-            ];
+        return ['mail', 'database', FCMChannel::class];
     }
 
     /**

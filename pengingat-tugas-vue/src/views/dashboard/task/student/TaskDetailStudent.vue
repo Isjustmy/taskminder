@@ -3,11 +3,12 @@
     <div class="flex">
       <router-link
         :to="{ name: 'task_student_list' }"
-        class="btn btn-neutral text-white absolute ml-3 mt-3 hover:bg-white hover:text-black"
+        class="btn btn-neutral text-white ml-3 mt-3 mr-8 hover:bg-white hover:text-black"
       >
         <font-awesome-icon icon="arrow-left" />
+        Kembali
       </router-link>
-      <h1 class="mb-4 text-2xl font-bold text-center ml-20 mt-5 text-gray-700">
+      <h1 class="mb-4 text-2xl font-bold text-center mt-5 text-gray-700">
         Detail Tugas
       </h1>
       <div class="flex ml-10 mt-3">
@@ -64,7 +65,7 @@
             </div>
             <div class="ml-4 w-[70%] text-wrap content-end text-justify flex">
               <p class="font-bold text-lg">:</p>
-              <p class="ml-2 mt-1">{{ loadingDataTasks ? 'Memuat...' : detailedTasks.deadline }}</p>
+              <p class="ml-2 mt-1">{{ loadingDataTasks ? 'Memuat...' : formatDate(detailedTasks.deadline) }}</p>
             </div>
           </div>
           <div class="flex mt-6">
@@ -208,6 +209,7 @@
 import { useToast } from 'vue-toastification'
 import Cookies from 'js-cookie'
 import api from '@/services/api'
+import dateFormater from '@/date/date_formatter'
 
 export default {
   data() {
@@ -240,6 +242,9 @@ export default {
     this.imageModal = document.getElementById('image-modal')
   },
   methods: {
+    formatDate(date) {
+      return dateFormater(date);
+    },
     async deleteTask() {
       this.loadingDelete = true
       try {

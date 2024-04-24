@@ -14,17 +14,13 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig)
 const messaging = firebase.messaging()
 
-messaging.setBackgroundMessageHandler((payload) => {
-  console.log("Background message received: ", payload)
+messaging.onBackgroundMessage((payload) => {
   // Customize notification here
-  const notificationTitle = payload.notification.title
+  const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: payload.notification.icon,
-  }
+    icon: '../src/assets/taskminder_logo.png'
+  };
 
-  return self.registration.showNotification(
-    notificationTitle,
-    notificationOptions
-  )
-})
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});
