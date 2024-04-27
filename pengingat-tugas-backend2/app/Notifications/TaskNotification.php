@@ -10,9 +10,8 @@ use NotificationChannels\FCM\FCMChannel;
 use Kreait\Firebase\Messaging\CloudMessage;
 use App\Models\User;
 
-class TaskNotification extends Notification implements ShouldQueue
+class TaskNotification extends Notification
 {
-    use Queueable;
 
     protected $task;
     protected $teacherName;
@@ -26,7 +25,11 @@ class TaskNotification extends Notification implements ShouldQueue
     public function via($notifiable): array
     {
 
-        return ['mail', 'database', FCMChannel::class];
+        return [
+            FCMChannel::class,
+            'mail',
+            'database',
+        ];
     }
 
     public function toMail($notifiable)
@@ -49,8 +52,8 @@ class TaskNotification extends Notification implements ShouldQueue
             ->withNotification([
                 'title' => 'Tugas Baru: "' . $this->task->title . '"',
                 'body' => 'Tugas baru telah ditugaskan oleh guru ' . $this->teacherName . ' , dengan batas waktu ' . $this->task->deadline,
-                'icon'=> '../../public/assets/taskminder_logo 1 (mini 150x150).png'
-            ])         
+                'icon' => '../../public/assets/taskminder_logo 1 (mini 150x150).png'
+            ])
             ->withData([
                 'title' => 'Tugas Baru: "' . $this->task->title . '"',
                 'description' => 'Tugas baru oleh guru ' . $this->teacherName . ' telah ditugaskan dengan judul: ' . $this->task->title . '. Batas waktu mengerjakan tugas: ' . $this->task->deadline . ', Harap untuk mengerjakan tugas sebelum batas waktu tiba.',
@@ -63,7 +66,7 @@ class TaskNotification extends Notification implements ShouldQueue
     {
         return [
             'title' => 'Tugas Baru: "' . $this->task->title . '"',
-            'description' =>'Tugas baru oleh guru ' . $this->teacherName . ' telah ditugaskan dengan judul: ' . $this->task->title . '. Batas waktu mengerjakan tugas: ' . $this->task->deadline . ', Harap untuk mengerjakan tugas sebelum batas waktu tiba.',
+            'description' => 'Tugas baru oleh guru ' . $this->teacherName . ' telah ditugaskan dengan judul: ' . $this->task->title . '. Batas waktu mengerjakan tugas: ' . $this->task->deadline . ', Harap untuk mengerjakan tugas sebelum batas waktu tiba.',
             'deadline' => $this->task->deadline,
         ];
     }

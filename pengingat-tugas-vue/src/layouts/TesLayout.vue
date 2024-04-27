@@ -472,14 +472,7 @@ export default {
           getToken(messaging, { vapidKey: 'BJFqzNlnNQMraDpjOQyMtiYMbvfw5Yagblplg9EnTm__MF-ehmFO0JDo8l5K0U3mvKorkQfGeLYHw1zdi3M9iaE' })
             .then((currentToken) => {
               if (currentToken) {
-                // Cek apakah token sudah tersimpan sebelumnya
-                const storedToken = localStorage.getItem('userToken');
-                if (!storedToken || storedToken !== currentToken) {
-                  // Jika token belum pernah diterima sebelumnya atau token berbeda,
-                  // kirim token baru ke backend
                   this.sendToken(currentToken);
-                }
-                // Simpan token di localStorage untuk penggunaan selanjutnya
                 localStorage.setItem('userToken', currentToken);
               } else {
                 console.log('No registration token available.');
@@ -495,6 +488,7 @@ export default {
     } else {
       console.log('Service Worker is not supported in this browser.');
     }
+    
     this.fetchDashboardData();
   },
   methods: {

@@ -7,7 +7,6 @@
     "require": {
         "php": "^8.1",
         "ankurk91/fcm-notification-channel": "^2.1",
-        "eduardokum/laravel-mail-auto-embed": "^2.11",
         "guzzlehttp/guzzle": "^7.2",
         "laravel-notification-channels/fcm": "^4.3",
         "laravel/framework": "^10.10",

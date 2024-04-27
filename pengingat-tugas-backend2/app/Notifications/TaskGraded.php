@@ -9,8 +9,6 @@ use Illuminate\Notifications\Notification;
 
 class TaskGraded extends Notification
 {
-    use Queueable;
-
     /**
      * Create a new notification instance.
      */

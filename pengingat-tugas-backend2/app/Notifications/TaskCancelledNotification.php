@@ -12,8 +12,6 @@ use NotificationChannels\FCM\FCMChannel;
 
 class TaskCancelledNotification extends Notification
 {
-    use Queueable;
-
     protected $oldTaskData;
 
     /**
@@ -36,9 +34,9 @@ class TaskCancelledNotification extends Notification
     public function via($notifiable)
     {
         return [
+            FCMChannel::class,
             'mail',
-            'database',
-            FCMChannel::class
+            'database'
         ];
     }
 

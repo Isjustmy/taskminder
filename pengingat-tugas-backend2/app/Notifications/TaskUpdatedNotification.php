@@ -9,10 +9,8 @@ use Illuminate\Notifications\Notification;
 use NotificationChannels\FCM\FCMChannel;
 use Kreait\Firebase\Messaging\CloudMessage;
 
-class TaskUpdatedNotification extends Notification implements ShouldQueue
+class TaskUpdatedNotification extends Notification
 {
-    use Queueable;
-
     public $task;
 
     /**
@@ -33,7 +31,11 @@ class TaskUpdatedNotification extends Notification implements ShouldQueue
      */
     public function via($notifiable)
     {
-        return ['mail', 'database', FCMChannel::class];
+        return [
+            FCMChannel::class,
+            'mail',
+            'database'
+        ];
     }
 
     /**
@@ -45,9 +47,9 @@ class TaskUpdatedNotification extends Notification implements ShouldQueue
     public function toMail($notifiable)
     {
         return (new MailMessage)
-                    ->subject('Pembertahuan: Pembaruan Tugas "' . $this->task->title . '"')
-                    ->line('Sebuah tugas baru saja diperbarui. Silahkan periksa tugas untuk mengetahui perubahannya.')
-                    ->action('Lihat Tugas', url('/tasks/' . $this->task->id));
+            ->subject('Pembertahuan: Pembaruan Tugas "' . $this->task->title . '"')
+            ->line('Sebuah tugas baru saja diperbarui. Silahkan periksa tugas untuk mengetahui perubahannya.')
+            ->action('Lihat Tugas', url('/tasks/' . $this->task->id));
     }
 
     public function toFCM($notifiable): CloudMessage
@@ -57,8 +59,8 @@ class TaskUpdatedNotification extends Notification implements ShouldQueue
             ->withNotification([
                 'title' => 'Pembertahuan: Pembaruan Tugas "' . $this->task->title . '"',
                 'body' => 'Tugas telah diperbarui. Silahkan periksa tugas untuk mengetahui perubahannya.',
-                'icon'=> '../../public/assets/taskminder_logo 1 (mini 150x150).png'
-            ])         
+                'icon' => '../../public/assets/taskminder_logo 1 (mini 150x150).png'
+            ])
             ->withData([
                 'title' => 'Pembertahuan: Pembaruan Tugas "' . $this->task->title . '"',
                 'description' => 'Tugas telah diperbarui. Silahkan periksa tugas untuk mengetahui perubahannya.',
