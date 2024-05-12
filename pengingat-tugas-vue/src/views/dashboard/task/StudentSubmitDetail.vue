@@ -145,7 +145,6 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
 import { useToast } from 'vue-toastification'
 import api from '@/services/api'
 

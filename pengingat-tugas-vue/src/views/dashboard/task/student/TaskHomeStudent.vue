@@ -35,12 +35,13 @@
         <!-- Tabel Header -->
         <thead>
           <tr>
-            <th class="text-[14px] w-[10%]">Judul</th>
-            <th class="text-[14px] text-wrap w-[15%]">Deskripsi</th>
+            <th class="text-[14px] w-[11%]">Judul</th>
+            <th class="text-[14px] text-wrap w-[21%]">Deskripsi</th>
             <th class="text-[14px] w-[10%] text-center">Mata Pelajaran</th>
             <th class="text-[14px] w-[15%] text-center">Deadline</th>
-            <th class="text-[14px] text-wrap w-[8%] text-center">Telah Dikerjakan</th>
-            <th class="text-[14px] text-wrap w-[8%] text-center">Terlambat Mengerjakan</th>
+            <th class="text-[14px] text-wrap w-[8%] text-center">Telah Dikerjakan?</th>
+            <th class="text-[14px] text-wrap w-[8%] text-center">Terlambat Mengerjakan?</th>
+            <th class="text-[14px] text-wrap w-[17%] text-center">Sudah dinilai dan diberikan feedback?</th>
             <th class="text-[14px] w-[10%] text-center">Aksi</th>
           </tr>
         </thead>
@@ -54,7 +55,6 @@
             <td class="text-[15px] text-center">
               {{ task.submission_info.is_submitted ? 'Ya' : 'Tidak' }}
             </td>
-            <!-- Tampilkan informasi telah dikumpulkan atau belum -->
             <td class="text-[15px] text-center">
               {{
                 task.submission_info.is_late === null || task.submission_info.is_late === 0
@@ -62,7 +62,27 @@
                   : 'Ya'
               }}
             </td>
-            <!-- Tampilkan informasi terlambat mengerjakan atau belum -->
+            <td>
+              <router-link
+          :to="getRouterInfo(task)"
+          class="btn text-[13px] text-center text-wrap"
+          :class="{
+            'bg-red-500': !task.submission_info.is_submitted, // Warna merah biasa jika tugas belum dikumpulkan
+            'bg-red-700 text-white': task.submission_info.is_late && !task.submission_info.is_submitted, // Warna merah pekat jika tugas belum dikumpulkan dan telat
+            'bg-green-500': task.submission_info.is_submitted && !task.submission_info.scored_at, // Warna hijau jika tugas sudah dikumpulkan namun belum dinilai dan diberi feedback
+            'bg-green-700 text-white': task.submission_info.is_submitted && task.submission_info.scored_at // Warna hijau pekat jika tugas sudah dinilai
+          }"
+        >
+          <!-- Teks sesuai dengan kondisi tugas -->
+          {{
+            !task.submission_info.is_submitted
+              ? 'Tugas belum dikumpulkan'
+              : (task.submission_info.is_late ? 'Tugas terlambat dikerjakan' : '')
+                || (task.submission_info.is_submitted && !task.submission_info.scored_at ? 'Belum ada penilaian dari guru' : '')
+                || (task.submission_info.is_submitted && task.submission_info.scored_at ? 'Sudah dinilai oleh guru!' : '')
+          }}
+               </router-link>
+            </td>
             <td class="text-[15px] text-center">
               <router-link
                 class="btn btn-neutral text-white"
@@ -81,6 +101,7 @@
 import { useToast } from 'vue-toastification'
 import Cookies from 'js-cookie'
 import api from '@/services/api'
+import dateFormater from '@/date/date_formatter'
 
 export default {
   data() {
@@ -115,6 +136,16 @@ export default {
     this.fetchTasks()
   },
   methods: {
+    getRouterInfo(task) {
+      if (!task.submission_info.is_submitted || (task.submission_info.is_late && !task.submission_info.is_submitted)) {
+        return ''; // Kembalikan rute kosong jika kondisi tidak memenuhi syarat
+      } else {
+        return {
+          name: 'task_student_submit_detail',
+          params: { taskStudentId: task.id }
+        };
+      }
+    },
     filterTasks() {
       // Salin tugas-tugas yang ada ke dalam filteredTasks
       this.filteredTasks = this.tasks.slice()
@@ -158,40 +189,8 @@ export default {
       }
     },
     formatDate(date) {
-      // Ubah tanggal menjadi objek Date
-      const formattedDate = new Date(date)
-
-      // Daftar nama bulan dalam bahasa Indonesia
-      const monthNames = [
-        'Januari',
-        'Februari',
-        'Maret',
-        'April',
-        'Mei',
-        'Juni',
-        'Juli',
-        'Agustus',
-        'September',
-        'Oktober',
-        'November',
-        'Desember'
-      ]
-
-      // Ambil tanggal, bulan, dan tahun
-      const day = String(formattedDate.getDate()).padStart(2, '0')
-      const monthIndex = formattedDate.getMonth()
-      const year = formattedDate.getFullYear()
-
-      // Ambil jam, menit, dan detik
-      const hour = String(formattedDate.getHours()).padStart(2, '0')
-      const minute = String(formattedDate.getMinutes()).padStart(2, '0')
-      const second = String(formattedDate.getSeconds()).padStart(2, '0')
-
-      // Gabungkan menjadi format yang diinginkan
-      const formattedDateTime = `${day} ${monthNames[monthIndex]} ${year}, ${hour}:${minute}:${second}`
-
-      return formattedDateTime
-    }
+      return dateFormater(date);
+    },
   },
   computed: {
     userData() {
@@ -201,7 +200,7 @@ export default {
     isSiswaWithPengurusKelas() {
       // Periksa apakah user memiliki role 'siswa' dan 'pengurus_kelas'
       return this.role === 'siswa' && this.userData.roles.includes('pengurus_kelas')
-    }
+    },
   },
   watch: {
     // Gunakan watch untuk memantau perubahan searchTerm, selectedSubject, dan selectedDeadline

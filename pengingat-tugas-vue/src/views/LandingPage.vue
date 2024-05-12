@@ -83,6 +83,8 @@
 </template>
 
 <script>
+import Cookies from 'js-cookie';
+
 export default {
   name: 'LandingPage',
   data() {
@@ -134,8 +136,13 @@ export default {
 
     // Memanggil handleScroll untuk menetapkan status awal
     this.handleScroll();
+
+    // Clear cookies, sessionStorage, dan localStorage pada saat halaman diakses
+    sessionStorage.clear();
+    localStorage.clear();
+    Cookies.remove('userData');
   },
-  beforeDestroy() {
+  beforeUnmount() {
     // Menghapus event listener pada scroll saat komponen di-unmount
     window.removeEventListener('scroll', this.handleScroll);
   }

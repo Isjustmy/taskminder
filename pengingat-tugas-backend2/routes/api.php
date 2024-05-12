@@ -37,8 +37,6 @@ Route::post('password/email', [UserController::class, 'sendResetLink'])->name('p
 
 Route::post('password/reset', [UserController::class, 'resetPassword'])->name('password.reset');
 
-Route::get('/rekapitulasi/{teacherId}/{idKelas}', [TaskController::class, 'exportTaskScore']);
-
 Route::post('/import/nisn', [IdentifierController::class, 'importNISN']);
 Route::post('/import/nip', [IdentifierController::class, 'importNIP']);
 
@@ -73,7 +71,7 @@ Route::middleware('auth:api')->group(function () {
         // grup pengambilan data tugas dengan referensi function berbeda
         Route::get('/all', [TaskController::class, 'all'])->middleware(['permission:tasks.view', 'role:admin']);
         Route::get('/{id}', [TaskController::class, 'show'])->middleware(['permission:tasks.view', 'role:admin']);
-        Route::get('/list/teacher', [TaskController::class, 'getTeacherTasks'])->middleware('permission:tasks.view');
+        Route::get('/list/teacher', [TaskController::class, 'getTeacherTasks'])->middleware('permission:tasks.view,', 'role:guru');
         Route::get('/list/teacher/{id}', [TaskController::class, 'getTeacherTasksWithId'])->middleware('permission:tasks.view');
         Route::get('/list/summary', [TaskController::class, 'taskSummary'])->middleware('permission:tasks.view', 'role:guru');
         Route::get('/list/summary/{id}', [TaskController::class, 'taskSummaryWithId'])->middleware('permission:tasks.view', 'role:guru');
@@ -145,5 +143,10 @@ Route::middleware('auth:api')->group(function () {
         // hapus semua notifikasi
         Route::delete('/deleteAll', [NotificationController::class, 'deleteAllNotifications']);
     });
+
+    Route::post('/rekapitulasi_perkelas', [TaskController::class, 'recapStudentClassTask']);
+    Route::post('/rekapitulasi_pertugas', [TaskController::class, 'recapSpesificTask']);
+
+    Route::get('/export_nilai/{classId}', [TaskController::class, 'exportTaskScore']);
    
 });

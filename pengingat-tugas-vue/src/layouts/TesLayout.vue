@@ -376,10 +376,10 @@
               Kalender
             </router-link>
           </li>
-          <!-- <li v-if="role === 'guru'">
-            <a
+          <li v-if="role === 'guru'">
+            <router-link
               class="w-full flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-white hover:text-white rounded-lg hover:bg-blue-600-300"
-              href="#"
+              :to="{ name: 'rekapitulasi' }"
             >
               <svg
                 class="flex-shrink-0 size-4"
@@ -397,8 +397,8 @@
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
               </svg>
               Rekapitulasi Tugas
-            </a>
-          </li> -->
+            </router-link>
+          </li>
         </ul>
       </nav>
     </div>

@@ -15,6 +15,7 @@
             <select v-model="selectedMataPelajaran" @change="updateMataPelajaran" id="subjectSelect"
               class="select select-bordered ml-4 w-[18%]">
               <option>Pilih Mata Pelajaran</option>
+              <option disabled v-if="loadingSubjects">Memuat...</option>
               <option v-for="(subject, index) in subjects" :key="index" :value="subject">{{ subject }}</option>
             </select>
           </div>
@@ -131,6 +132,7 @@ export default {
       selectedIdOrder: '',
       userIdToDelete: '',
       searchQuery: '',
+      loadingSubjects: false,
     }
   },
   computed: {
@@ -164,6 +166,7 @@ export default {
       }
     },
     async fetchSubjects() {
+      this.loadingSubjects = true;
       try {
         const response = await api.get('/api/getData');
         if (response.data.success) {
@@ -175,6 +178,8 @@ export default {
       } catch (error) {
         console.error('An error occurred while fetching subjects:', error);
         // Handle error
+      } finally {
+        this.loadingSubjects = false;
       }
     },
     updateMataPelajaran() {

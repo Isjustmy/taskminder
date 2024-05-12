@@ -5,6 +5,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\TaskCreated;
+use App\Exports\TaskScore;
 use App\Models\Task;
 use App\Http\Resources\TaskResource;
 use App\Models\StudentClass;
@@ -21,9 +22,44 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
 
 class TaskController extends Controller
 {
+
+    public function exportTaskScore($classId)
+    {
+        $teacherId = Auth::id();
+
+        $studentClass = StudentClass::findOrFail($classId);
+        $className = $studentClass->class;
+
+        // Array asosiatif untuk nama bulan dalam bahasa Indonesia
+        $bulanIndonesia = [
+            'January' => 'Januari',
+            'February' => 'Februari',
+            'March' => 'Maret',
+            'April' => 'April',
+            'May' => 'Mei',
+            'June' => 'Juni',
+            'July' => 'Juli',
+            'August' => 'Agustus',
+            'September' => 'September',
+            'October' => 'Oktober',
+            'November' => 'November',
+            'December' => 'Desember',
+        ];
+
+        // Ambil nama bulan berdasarkan tanggal saat ini
+        $bulanSekarang = date('F'); // F akan menghasilkan nama bulan dalam bahasa Inggris
+        $bulanIndonesiaSekarang = $bulanIndonesia[$bulanSekarang]; // Ambil nama bulan dalam bahasa Indonesia
+
+        // Generate nama file sesuai dengan format yang diinginkan
+        $fileName = 'Rekapitulasi Tugas ' . $className . ' - ' . date('j ') . $bulanIndonesiaSekarang . date(' Y') . '.xlsx';
+
+        return Excel::download(new TaskScore($teacherId, $classId), $fileName);
+    }
+
     public function taskSummary()
     {
         $teacherId = Auth::user()->id;
@@ -150,36 +186,66 @@ class TaskController extends Controller
 
     public function getTeacherTasks()
     {
-        $teacherId = auth()->user()->id;
+        try {
+            $teacherId = auth()->user()->id;
 
-        // Ambil daftar tugas yang dibuat oleh guru dengan ID yang sedang masuk
-        $tasks = Task::with('studentClass:id,class') // Mengambil data kelas terkait dengan tugas
-            ->where('creator_id', $teacherId)
-            ->get();
+            // Ambil daftar tugas yang dibuat oleh guru dengan ID yang sedang masuk
+            $tasks = Task::with('studentClass:id,class')
+                ->where('creator_id', $teacherId)
+                ->paginate(4);
 
-        // Menyusun kembali data respons
-        $formattedTasks = $tasks->map(function ($task) {
-            return [
-                'id' => $task->id,
-                'title' => $task->title,
-                'description' => $task->description,
-                'file_path' => $task->file_path,
-                'link' => $task->link,
-                'class' => [
-                    'id' => $task->studentClass->id,
-                    'class_name' => $task->studentClass->class,
-                ],
-                'creator_id' => $task->creator_id,
-                'mata_pelajaran' => $task->mata_pelajaran,
-                'deadline' => $task->deadline,
-                'created_at' => $task->created_at,
+            // Memformat data respons
+            $formattedTasks = $tasks->map(function ($task) {
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'file_path' => $task->file_path,
+                    'link' => $task->link,
+                    'creator_id' => $task->creator_id,
+                    'mata_pelajaran' => $task->mata_pelajaran,
+                    'deadline' => $task->deadline,
+                    'created_at' => $task->created_at,
+                    'class' => [
+                        'id' => $task->studentClass->id,
+                        'class_name' => $task->studentClass->class,
+                    ],
+                ];
+            });
+
+            if ($formattedTasks->isNotEmpty()) {
+                $response = [
+                    'success' => true,
+                    'message' => 'Data Tugas Ditemukan',
+                    'data' => $formattedTasks,
+                    'current_page' => $tasks->currentPage(),
+                    'first_page_url' => $tasks->url(1),
+                    'from' => $tasks->firstItem(),
+                    'last_page' => $tasks->lastPage(),
+                    'last_page_url' => $tasks->url($tasks->lastPage()),
+                    'next_page_url' => $tasks->nextPageUrl(),
+                    'path' => $tasks->path(),
+                    'per_page' => $tasks->perPage(),
+                    'prev_page_url' => $tasks->previousPageUrl(),
+                    'to' => $tasks->lastItem(),
+                    'total' => $tasks->total(),
+                ];
+            } else {
+                $response = [
+                    'success' => false,
+                    'message' => 'Tidak Ada Data Tugas yang Ditemukan',
+                    'data' => [],
+                ];
+            }
+
+            return response()->json($response, 200);
+        } catch (\Exception $e) {
+            $response = [
+                'success' => false,
+                'message' => 'Terjadi kesalahan dalam memproses permintaan: ' . $e->getMessage(),
             ];
-        });
 
-        if ($formattedTasks->isNotEmpty()) {
-            return new TaskResource(true, 'Data Tugas yang dibuat', $formattedTasks);
-        } else {
-            return new TaskResource(false, 'Tidak Ada Data Tugas yang Dibuat', null, 404);
+            return response()->json($response, 500);
         }
     }
 
@@ -836,7 +902,7 @@ class TaskController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'score' => 'required|integer',
-            'feedback_content' => 'required'
+            'feedback_content' => 'nullable'
         ]);
 
         if ($validator->fails()) {
@@ -878,7 +944,7 @@ class TaskController extends Controller
 
         // Validasi masukan pengguna
         $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:75',
+            'title' => 'required|string|max:100',
             'description' => 'required|string',
             'class_id' => 'required|integer|exists:student_classes,id',
             'deadline' => 'required|date',
@@ -1131,47 +1197,136 @@ class TaskController extends Controller
     }
 
 
-    public function recapByClassAndSubject(Request $request)
+    /**
+     * Get tasks and their scores based on class and teacher.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function recapStudentClassTask(Request $request)
     {
-        // Mendapatkan guru yang sedang login
-        $teacher = auth()->user();
+        $teacherId = Auth::id();
 
-        // Validasi input
-        $request->validate([
-            'class_id' => 'required|exists:App\Models\StudentClass,id',
+        $validateRequest = Validator::make($request->all(), [
+            'class_id' => 'required|exists:student_classes,id',
         ]);
 
-        // Ambil data dari request
-        $classId = $request->input('class_id');
+        if ($validateRequest->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validateRequest->errors(),
+            ], 422);
+        }
+        $classId = $request->class_id;
 
-        // Query untuk mendapatkan tugas berdasarkan kelas dan guru yang sedang login
         $tasks = Task::where('class_id', $classId)
-            ->where('creator_id', $teacher->id)
+            ->whereHas('creator', function ($query) use ($teacherId) {
+                $query->where('id', $teacherId);
+            })
             ->with(['studentTasks' => function ($query) {
-                $query->select('task_id', 'student_id', 'score');
+                $query->select('student_id', 'task_id', 'score')
+                    ->with(['students' => function ($query) {
+                        $query->select('id', 'nomor_absen', 'name');
+                    }]);
             }])
-            ->join('users', 'tasks.creator_id', '=', 'users.id')
-            ->select('tasks.*', 'users.nomor_absen')
             ->get();
 
-        // Mengatur format data yang akan dikembalikan
-        $formattedTasks = $tasks->map(function ($task) {
-            return [
-                'no_absen' => $task->nomor_absen,
-                'nama' => $task->title,
-                'tugas' => $task->studentTasks->pluck('score')->toArray(),
-            ];
-        });
+        $formattedTasks = [];
 
-        // Membuat response dengan status dan data
-        $response = [
-            'status' => 'success',
-            'message' => 'Tasks recap by class and subject retrieved successfully',
-            'data' => $formattedTasks,
+        foreach ($tasks as $task) {
+            $formattedTask = [
+                'task_id' => $task->id,
+                'judul_tugas' => $task->title,
+                'deskripsi_tugas' => $task->description,
+                'nilai_siswa' => []
+            ];
+
+            foreach ($task->studentTasks as $studentTask) {
+                // Check if nilai_tugas is null, replace with "-"
+                $nilaiTugas = $studentTask->score ?? '-';
+
+                $formattedTask['nilai_siswa'][] = [
+                    'no_absen' => $studentTask->students->nomor_absen,
+                    'nama' => $studentTask->students->name,
+                    'nilai_tugas' => $nilaiTugas
+                ];
+            }
+
+            $formattedTasks[] = $formattedTask;
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Data tugas dan nilainya berdasarkan kelas',
+            'data' => $formattedTasks
+        ]);
+    }
+
+    public function recapSpesificTask(Request $request)
+    {
+        $teacherId = Auth::id();
+
+        $validateRequest = Validator::make($request->all(), [
+            'class_id' => 'required|exists:student_classes,id',
+            'task_id' => 'required|exists:tasks,id',
+        ]);
+
+        if ($validateRequest->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validateRequest->errors(),
+            ], 422);
+        }
+
+        $taskId = $request->task_id;
+
+        $task = Task::where('id', $taskId)
+            ->whereHas('creator', function ($query) use ($teacherId) {
+                $query->where('id', $teacherId); // Filter by teacherId (creator_id)
+            })
+            ->whereHas('studentClass', function ($query) use ($request) {
+                $query->where('id', $request->class_id); // Filter by class_id
+            })
+            ->with(['studentTasks' => function ($query) {
+                $query->select('student_id', 'task_id', 'score')
+                    ->with(['students' => function ($query) {
+                        $query->select('id', 'nomor_absen', 'name');
+                    }]);
+            }])
+            ->first();
+
+        if (!$task) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tugas tidak ditemukan untuk guru ini pada kelas yang dimaksud',
+            ], 404);
+        }
+
+        $formattedTask = [
+            'id_tugas' => $task->id,
+            'judul_tugas' => $task->title,
+            'deskripsi_tugas' => $task->description,
+            'nilai_siswa' => []
         ];
 
-        // Mengembalikan response
-        return response()->json($response);
+        foreach ($task->studentTasks as $studentTask) {
+            // Check if nilai_tugas is null, replace with "-"
+            $nilaiTugas = $studentTask->score ?? '-';
+
+            $formattedTask['nilai_siswa'][] = [
+                'no_absen' => $studentTask->students->nomor_absen,
+                'nama' => $studentTask->students->name,
+                'nilai_tugas' => $nilaiTugas
+            ];
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Data nilai tugas siswa untuk tugas tertentu',
+            'data' => $formattedTask
+        ]);
     }
 
 

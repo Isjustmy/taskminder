@@ -19,7 +19,7 @@
               : { name: 'task_student_submit', params: { taskStudentId: taskStudentId } }
           "
           class="btn ml-10 text-white text-[15px]"
-          :class="{ 'btn-success': !loadingTitle, 'btn-active btn-ghost': loadingTitle }"
+          :class="{ 'btn-success': !loadingTitle, 'btn-disabled': loadingTitle }"
         >
           {{ detailedTasks.is_submitted === 1 ? 'Submit Ulang Tugas Ini' : 'Submit Tugas Ini' }}
         </router-link>

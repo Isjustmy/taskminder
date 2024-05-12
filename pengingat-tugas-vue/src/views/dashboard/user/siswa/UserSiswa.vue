@@ -14,6 +14,7 @@
             <input placeholder="Cari Nama..." class="w-[28%] input input-bordered" v-model="searchQuery" />
             <select class="select select-bordered ml-4 w-[18%]" v-model="selectedClass" @change="updateClassSelection">
               <option>Pilih Kelas</option>
+              <option disabled v-if="loadingClasses">Memuat...</option>
               <option v-for="classItem in classes" :value="classItem.id" :key="classItem.id">{{ classItem.class }}
               </option>
             </select>
@@ -121,7 +122,8 @@ export default {
       sortOrder: '',
       loadingUsers: false,
       loadingDelete: false,
-      userIdToDelete: ''
+      userIdToDelete: '',
+      loadingClasses: false,
     }
   },
   computed: {
@@ -173,6 +175,7 @@ export default {
       }
     },
     async fetchClassData() {
+      this.loadingClasses = true;
       try {
         const response = await api.get('/api/getData')
         if (response.data.success) {
@@ -182,6 +185,8 @@ export default {
         }
       } catch (error) {
         console.error('An error occurred while fetching class data:', error)
+      } finally {
+        this.loadingClasses = false;
       }
     },
     async fetchUserData() {
