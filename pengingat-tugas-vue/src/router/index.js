@@ -1,6 +1,6 @@
 // router.js
 import { createRouter, createWebHistory } from 'vue-router'
-import MainLayout from '@/layouts/MainLayout.vue'
+// import MainLayout from '@/layouts/MainLayout.vue'
 import Dashboard from '@/views/dashboard/Dashboard.vue'
 import DashboardStudent from '@/views/dashboard/DashboardStudent.vue'
 import Login from '@/views/LoginPage.vue'
@@ -217,33 +217,33 @@ router.beforeEach((to, from, next) => {
   if (to.matched.some((record) => record.meta.requiresAuth)) {
     // Check if user is authenticated
     if (!isLoggedIn()) {
+      sessionStorage.setItem('redirectAfterLogin', to.fullPath);
       toast.error('Silahkan Login Terlebih Dahulu')
       next({ name: 'login' })
     } else {
-      // Check user's role
       const userData = JSON.parse(Cookies.get('userData'))
       const userRole = userData.roles || []
 
-      // Redirect to appropriate dashboard based on user role
       if (userRole.includes('admin') || userRole.includes('guru')) {
         if (to.name === 'dashboard') {
-          next({ name: 'home' }) // Redirect to regular dashboard
+          next({ name: 'home' })
         } else {
-          next() // Proceed to the route
+          next()
         }
       } else if (userRole.includes('siswa') || userRole.includes('pengurus_kelas')) {
         if (to.name === 'dashboard') {
-          next({ name: 'home_student' }) // Redirect to student dashboard
+          next({ name: 'home_student' })
+        } else if (to.name === 'home') {
+          next({ name: 'home_student' })
         } else {
-          next() // Proceed to the route
+          next()
         }
       } else {
-        // Proceed to other routes
         next()
       }
     }
   } else {
-    next() // Proceed to the route
+    next()
   }
 })
 

@@ -15,12 +15,14 @@
               <p class="text-lg">Memuat...</p>
             </div>
             <div v-else-if="totalUsers.data && Array.isArray(totalUsers.data.roles)">
-              <div class="flex">
+              <div class="grid grid-cols-4 content-center justify-center text-center ">
                 <div v-for="role in totalUsers.data.roles" :key="role.name"
-                  class="content-center justify-center text-center mx-6">
+                  class="mx-5">
                   <h1 class="font-bold text-4xl pb-2">{{ role.count }}</h1>
+                </div>
+                <div v-for="role in totalUsers.data.roles" :key="role.name">
                   <p class="font-normal text-sm">
-                    {{ role.name === 'admin' ? 'Admin' : role.name === 'siswa' ? 'Siswa' : 'Guru' }}
+                    {{ role.name === 'admin' ? 'Admin' : role.name === 'siswa' ? 'Siswa' : role.name === 'guru' ? 'Guru' : role.name === 'pengurus_kelas' ? 'Pengurus Kelas' : 'Tidak Diketahui' }}
                   </p>
                 </div>
               </div>
@@ -117,36 +119,19 @@ export default {
       try {
         this.totalUsers.loading = true;
         const response = await api.get('/api/user');
-
         if (response.status === 200) {
-          const responseData = response.data;
-          if (responseData && responseData.data && Array.isArray(responseData.data.data)) {
-            const users = responseData.data.data;
-            const roles = users.map((user) => user.roles[0].name);
-            const roleCounts = roles.reduce((acc, role) => {
-              acc[role] = (acc[role] || 0) + 1;
-              return acc;
-            }, {});
-            this.totalUsers.data = {
-              roles: Object.entries(roleCounts).map(([name, count]) => ({ name, count }))
-            };
-          } else {
-            console.error('Invalid response format for total users:', responseData);
-            await this.toast.error('Format respons tidak valid untuk total pengguna', {
-              position: 'top-center',
-              timeout: 1500
-            });
-          }
-        } else if (response.status === 401) {
-          console.error('Error fetching total users:', response);
-          await this.$router.push({ name: 'login' });
-          await this.toast.error('Terjadi error. Harap login ulang', {
-            position: 'top-center',
-            timeout: 1500
-          });
+          const users = response.data.data.data;
+          const roles = users.flatMap(user => user.roles.map(role => role.name));
+          const roleCounts = roles.reduce((acc, role) => {
+            acc[role] = (acc[role] || 0) + 1;
+            return acc;
+          }, {});
+          this.totalUsers.data = {
+            roles: Object.entries(roleCounts).map(([name, count]) => ({ name, count }))
+          };
         } else {
-          console.error('Unexpected error occurred:', response);
-          await this.toast.error('Terjadi kesalahan yang tidak terduga. Silakan coba lagi nanti', {
+          console.error('Invalid response format for total users:', response);
+          await this.toast.error('Format respons tidak valid untuk total pengguna', {
             position: 'top-center',
             timeout: 1500
           });

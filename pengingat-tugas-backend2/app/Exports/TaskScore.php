@@ -76,20 +76,45 @@ class TaskScore implements FromCollection, WithHeadings, ShouldAutoSize, WithSty
                      ->where('class_id', $this->classId)
                      ->get();
         foreach ($tasks as $task) {
-            $headings[] = 'Tugas ' . $task->id;
+            $headings[] = 'Tugas "' . $task->title . '"';
         }
         return $headings;
     }
 
     public function styles(Worksheet $sheet)
     {
-        $sheet->getStyle('A1:Z100')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('B1:B100')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        // Mengambil jumlah tugas untuk menentukan berapa banyak kolom yang digunakan
+        $tasks = Task::where('creator_id', $this->teacherId)
+                     ->where('class_id', $this->classId)
+                     ->get();
+        $taskCount = count($tasks);
+
+        // Mengambil jumlah siswa
+        $students = User::where('student_class_id', $this->classId)->get();
+        $studentCount = count($students);
+
+        // Kolom dimulai dari C karena A dan B untuk No. Absen dan Nama
+        $lastColumn = chr(66 + $taskCount); // 66 adalah kode ASCII untuk 'B'
+        $lastRow = $studentCount + 1; // +1 karena ada header
+
+        // Mengatur alignment untuk semua kolom kecuali kolom nama (B)
+        $sheet->getStyle('A1:' . $lastColumn . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('B1:B' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+
+        // Mengatur border untuk header dan seluruh sel yang memiliki data
+        $styleArray = [
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                    'color' => ['argb' => '000000'],
+                ],
+            ],
+        ];
+
+        $sheet->getStyle('A1:' . $lastColumn . $lastRow)->applyFromArray($styleArray);
 
         return [
-            'A1:Z1' => ['font' => ['bold' => true], 'border' => ['outline' => ['borderStyle' => Border::BORDER_THICK]]],
-            'A1:A100' => ['border' => ['left' => ['borderStyle' => Border::BORDER_THICK]]],
-            'A1:Z100' => ['border' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]],
+            1 => ['font' => ['bold' => true]],
         ];
     }
 }

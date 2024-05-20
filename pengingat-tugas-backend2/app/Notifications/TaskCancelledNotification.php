@@ -35,8 +35,8 @@ class TaskCancelledNotification extends Notification
     {
         return [
             FCMChannel::class,
+            'database',
             'mail',
-            'database'
         ];
     }
 
@@ -60,16 +60,17 @@ class TaskCancelledNotification extends Notification
         return CloudMessage::new()
             ->withDefaultSounds()
             ->withNotification([
-                'title' => 'Pemberitahuan: Pembatalan Tugas',
+                'title' => 'Tugas Dibatalkan: "' . $this->oldTaskData->getOriginal('title') . '"',
                 'body' => 'Tugas "' . $this->oldTaskData->getOriginal('title') . '" telah dibatalkan.',
-                'icon' => '../../public/assets/taskminder_logo 1 (mini 150x150).png'
+                'icon' => url('assets/taskminder_logo 1 (mini 150x150).png')
             ])
             ->withData([
                 // Tambahkan informasi yang sesuai dengan template notifikasi di sini
                 'title' => 'Pemberitahuan: Pembatalan Tugas',
                 'body' => 'Tugas "' . $this->oldTaskData->getOriginal('title') . '" telah dibatalkan',
-                'priority' => 'high'
-            ]);
+                'icon' => url('assets/taskminder_logo 1 (mini 150x150).png'),
+            ])
+            ->withHighestPossiblePriority();
     }
 
     /**
@@ -81,7 +82,7 @@ class TaskCancelledNotification extends Notification
     public function toArray($notifiable)
     {
         return [
-            'judul' => 'Pembatalan Tugas "' . $this->oldTaskData->getOriginal('title') . '"',
+            'judul' => 'Tugas Dibatalkan: "' . $this->oldTaskData->getOriginal('title') . '"',
             'Keterangan' => 'Tugas "' . $this->oldTaskData->getOriginal('title') . '"' . ' dari Guru ' . $this->oldTaskData->getOriginal('teacher_name') . ' telah dibatalkan.',
             'data_tugas' => [
                 'judul_tugas' => $this->oldTaskData->getOriginal('title'),

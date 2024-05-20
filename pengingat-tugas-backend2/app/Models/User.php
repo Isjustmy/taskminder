@@ -103,7 +103,7 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(UserTokenFcm::class);
     }
-    
+
     public function routeNotificationForFCM($notification): string|array|null
     {
          return $this->userTokenFcm()->pluck('token')->toArray();

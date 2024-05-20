@@ -20,7 +20,8 @@ messaging.setBackgroundMessageHandler((payload) => {
   const notificationTitle = payload.notification.title
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '../src/assets/taskminder_logo.png',
+    icon: payload.data.icon, // Menggunakan URL ikon dari data payload
+    click_action: payload.data.click_action // Aksi ketika notifikasi diklik
   }
 
   return self.registration.showNotification(

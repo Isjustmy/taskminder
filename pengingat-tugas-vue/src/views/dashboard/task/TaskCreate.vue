@@ -218,7 +218,7 @@ export default {
     },
     minDate() {
       return Array.isArray(this.role) &&
-        (this.role.icludes('admin') ||
+        (this.role.includes('admin') ||
           this.role.includes('guru') ||
           this.role.includes('pengurus_kelas'))
         ? new Date()

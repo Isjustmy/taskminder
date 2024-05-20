@@ -1025,7 +1025,7 @@ class TaskController extends Controller
             $class = StudentClass::findOrFail($task->class_id);
             $students = $class->students;
             foreach ($students as $student) {
-                $student->notify(new TaskUpdatedNotification($task));
+                $student->notify(new TaskUpdatedNotification($oldTask, $task));
             }
 
             return response()->json([

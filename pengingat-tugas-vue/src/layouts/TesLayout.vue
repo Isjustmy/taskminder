@@ -1,5 +1,4 @@
 <template>
-
   <body class="bg-gray-50">
     <!-- ========== HEADER ========== -->
     <header
@@ -37,14 +36,20 @@
                 </svg>
 
                 <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-56 py-2">
-                  <li>
+                  <li v-if="notifications.length === 0" class="text-center text-gray-500">
+                    Tidak ada notifikasi
+                  </li>
+                  <li v-for="(notification, index) in notifications.slice(0, 3)" :key="notification.id">
                     <div class="block">
-                      <h1>Tes</h1>
-                      <p class="font-normal">Isi notifikasi: TUGAS BARU: MATEMATIKA</p>
+                      <h1>{{ notification.data.title || notification.data.judul }}</h1>
+                      <p class="font-normal truncate-text" style="max-width: 200px;">{{ notification.data.description ||
+                        notification.data.Keterangan }}</p>
                     </div>
                   </li>
-                  <li>
-                    <h1>Tes 2</h1>
+                  <li v-if="notifications.length > 3">
+                    <a href="#" @click="toggleNotifications" class="block text-center text-sm text-blue-500">
+                      {{ showAllNotifications ? 'Lihat lebih sedikit...' : 'Lihat lebih banyak...' }}
+                    </a>
                   </li>
                 </ul>
               </div>
@@ -71,10 +76,10 @@
                     <p>
                       Anda adalah {{ formattedUserRoles
                       }}{{
-                  user.guru_mata_pelajaran
-                    ? `, Mata Pelajaran ${user.guru_mata_pelajaran}`
-                    : ''
-                }}
+  user.guru_mata_pelajaran
+  ? `, Mata Pelajaran ${user.guru_mata_pelajaran}`
+  : ''
+}}
                     </p>
                   </div>
                 </div>
@@ -140,9 +145,8 @@
     <div class="sticky top-0 inset-x-0 z-20 bg-white border-y px-4 sm:px-6 md:px-8 lg:hidden">
       <div class="flex items-center py-4">
         <!-- Navigation Toggle -->
-        <button type="button" class="text-gray-500 hover:text-gray-600 mr-4"
-          data-hs-overlay="#application-sidebar-brand" aria-controls="application-sidebar-brand"
-          aria-label="Toggle navigation">
+        <button type="button" class="text-gray-500 hover:text-gray-600 mr-4" data-hs-overlay="#application-sidebar-brand"
+          aria-controls="application-sidebar-brand" aria-label="Toggle navigation">
           <span class="sr-only">Toggle Navigation</span>
           <svg class="size-5" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
             <path fill-rule="evenodd"
@@ -180,12 +184,11 @@
         <ul class="space-y-1.5">
           <li>
             <router-link :to="{
-                  name:
-                    role.includes('siswa') || role.includes('pengurus_kelas')
-                      ? 'home_student'
-                      : 'home'
-                }"
-              class="flex items-center w-full gap-x-3 py-2 px-2.5 hover:bg-blue-600 text-sm text-white rounded-lg">
+              name:
+                role.includes('siswa') || role.includes('pengurus_kelas')
+                  ? 'home_student'
+                  : 'home'
+            }" class="flex items-center w-full gap-x-3 py-2 px-2.5 hover:bg-blue-600 text-sm text-white rounded-lg">
               <font-awesome-icon icon="home" class="pb-0.5" />
               Home
             </router-link>
@@ -205,14 +208,14 @@
               Users
 
               <svg class="hs-accordion-active:block ms-auto hidden size-4" xmlns="http://www.w3.org/2000/svg" width="24"
-                height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
+                height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <path d="m18 15-6-6-6 6" />
               </svg>
 
               <svg class="hs-accordion-active:hidden ms-auto block size-4" xmlns="http://www.w3.org/2000/svg" width="24"
-                height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
+                height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <path d="m6 9 6 6 6-6" />
               </svg>
             </button>
@@ -255,11 +258,11 @@
           <li class="hs-accordion" id="account-accordion"
             v-if="role.includes('siswa') || role.includes('pengurus_kelas') || role.includes('guru')">
             <router-link :to="{
-                  name:
-                    role.includes('siswa') || role.includes('pengurus_kelas')
-                      ? 'task_student_list'
-                      : 'task'
-                }" type="button"
+              name:
+                role.includes('siswa') || role.includes('pengurus_kelas')
+                  ? 'task_student_list'
+                  : 'task'
+            }" type="button"
               class="hs-accordion-toggle w-full text-start flex items-center gap-x-3.5 py-2 px-2.5 hs-accordion-active:text-white hs-accordion-active:hover:bg-transparent text-sm text-white hover:text-white rounded-lg hover:bg-blue-600">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
                 class="flex-shrink-0 mt-0.5 size-4">
@@ -379,20 +382,10 @@
           <li v-if="role === 'guru'">
             <router-link
               class="w-full flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-white hover:text-white rounded-lg hover:bg-blue-600-300"
-              :to="{ name: 'rekapitulasi' }"
-            >
-              <svg
-                class="flex-shrink-0 size-4"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
+              :to="{ name: 'rekapitulasi' }">
+              <svg class="flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
               </svg>
@@ -438,7 +431,9 @@ export default {
       user: {},
       role: '',
       loading: false,
-      isNotificationDropdownOpen: false
+      isNotificationDropdownOpen: false,
+      notifications: [],
+      showAllNotifications: false
     };
   },
   computed: {
@@ -465,14 +460,14 @@ export default {
   mounted() {
     const messaging = getMessaging();
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('../../public/firebase-messaging-sw.js')
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
         .then((registration) => {
           console.log('Service Worker registered:', registration);
           // Setelah service worker terdaftar, Anda dapat mengambil token
           getToken(messaging, { vapidKey: 'BJFqzNlnNQMraDpjOQyMtiYMbvfw5Yagblplg9EnTm__MF-ehmFO0JDo8l5K0U3mvKorkQfGeLYHw1zdi3M9iaE' })
             .then((currentToken) => {
               if (currentToken) {
-                  this.sendToken(currentToken);
+                this.sendToken(currentToken);
                 localStorage.setItem('userToken', currentToken);
               } else {
                 console.log('No registration token available.');
@@ -488,10 +483,23 @@ export default {
     } else {
       console.log('Service Worker is not supported in this browser.');
     }
-    
+
     this.fetchDashboardData();
+    this.fetchNotifications();
   },
   methods: {
+    toggleNotifications() {
+      this.showAllNotifications = !this.showAllNotifications;
+    },
+    fetchNotifications() {
+      Api.get('/api/notifications')
+        .then(response => {
+          this.notifications = response.data.data;
+        })
+        .catch(error => {
+          console.error('There was an error fetching the notifications:', error);
+        });
+    },
     // TODO: ubah logic dan skema pengiriman token FCM User
     async sendToken(userToken) {
       // memproses informasi untuk dikirimkan bersama dengan token FCM ke backend
@@ -575,4 +583,10 @@ export default {
 };
 </script>
 
-<style></style>
+<style>
+.truncate-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>

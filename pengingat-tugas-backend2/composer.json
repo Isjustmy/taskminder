@@ -6,9 +6,8 @@
     "license": "MIT",
     "require": {
         "php": "^8.1",
-        "ankurk91/fcm-notification-channel": "^2.1",
+        "ankurk91/fcm-notification-channel": "*",
         "guzzlehttp/guzzle": "^7.2",
-        "laravel-notification-channels/fcm": "^4.3",
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8",

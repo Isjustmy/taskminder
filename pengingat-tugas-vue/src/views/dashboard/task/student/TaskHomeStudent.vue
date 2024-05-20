@@ -9,7 +9,7 @@
         >Tambah Tugas Baru</router-link
       >
     </div>
-    <div class="overflow-x-auto">
+    <div>
       <div class="flex items-center mb-4">
         <input
           v-model="searchTerm"
@@ -31,68 +31,70 @@
       <div v-else-if="filteredTasks.length === 0" class="text-center text-[16px]">
         Tidak ada tugas
       </div>
-      <table v-else class="table">
-        <!-- Tabel Header -->
-        <thead>
-          <tr>
-            <th class="text-[14px] w-[11%]">Judul</th>
-            <th class="text-[14px] text-wrap w-[21%]">Deskripsi</th>
-            <th class="text-[14px] w-[10%] text-center">Mata Pelajaran</th>
-            <th class="text-[14px] w-[15%] text-center">Deadline</th>
-            <th class="text-[14px] text-wrap w-[8%] text-center">Telah Dikerjakan?</th>
-            <th class="text-[14px] text-wrap w-[8%] text-center">Terlambat Mengerjakan?</th>
-            <th class="text-[14px] text-wrap w-[17%] text-center">Sudah dinilai dan diberikan feedback?</th>
-            <th class="text-[14px] w-[10%] text-center">Aksi</th>
-          </tr>
-        </thead>
-        <!-- Tabel Body -->
-        <tbody>
-          <tr v-for="task in filteredTasks" :key="task.id">
-            <td class="text-[15px]">{{ task.title }}</td>
-            <td class="text-[15px] truncate-description">{{ task.description }}</td>
-            <td class="text-[15px] text-center">{{ task.mata_pelajaran }}</td>
-            <td class="text-[15px] text-center">{{ formatDate(task.deadline) }}</td>
-            <td class="text-[15px] text-center">
-              {{ task.submission_info.is_submitted ? 'Ya' : 'Tidak' }}
-            </td>
-            <td class="text-[15px] text-center">
-              {{
-                task.submission_info.is_late === null || task.submission_info.is_late === 0
-                  ? 'Tidak'
-                  : 'Ya'
-              }}
-            </td>
-            <td>
-              <router-link
-          :to="getRouterInfo(task)"
-          class="btn text-[13px] text-center text-wrap"
-          :class="{
-            'bg-red-500': !task.submission_info.is_submitted, // Warna merah biasa jika tugas belum dikumpulkan
-            'bg-red-700 text-white': task.submission_info.is_late && !task.submission_info.is_submitted, // Warna merah pekat jika tugas belum dikumpulkan dan telat
-            'bg-green-500': task.submission_info.is_submitted && !task.submission_info.scored_at, // Warna hijau jika tugas sudah dikumpulkan namun belum dinilai dan diberi feedback
-            'bg-green-700 text-white': task.submission_info.is_submitted && task.submission_info.scored_at // Warna hijau pekat jika tugas sudah dinilai
-          }"
-        >
-          <!-- Teks sesuai dengan kondisi tugas -->
-          {{
-            !task.submission_info.is_submitted
-              ? 'Tugas belum dikumpulkan'
-              : (task.submission_info.is_late ? 'Tugas terlambat dikerjakan' : '')
-                || (task.submission_info.is_submitted && !task.submission_info.scored_at ? 'Belum ada penilaian dari guru' : '')
-                || (task.submission_info.is_submitted && task.submission_info.scored_at ? 'Sudah dinilai oleh guru!' : '')
-          }}
-               </router-link>
-            </td>
-            <td class="text-[15px] text-center">
-              <router-link
-                class="btn btn-neutral text-white"
-                :to="{ name: 'task_student_detail', params: { taskStudentId: task.id } }"
-                >Detail</router-link
-              >
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div v-else class="overflow-x-auto">
+        <table class="table text-center w-full">
+          <!-- Tabel Header -->
+          <thead>
+            <tr>
+              <th class="text-[14px] w-[11%]">Judul</th>
+              <th class="text-[14px] text-wrap w-[21%]">Deskripsi</th>
+              <th class="text-[14px] w-[10%]">Mata Pelajaran</th>
+              <th class="text-[14px] w-[15%]">Deadline</th>
+              <th class="text-[14px] text-wrap w-[8%]">Telah Dikerjakan?</th>
+              <th class="text-[14px] text-wrap w-[8%]">Terlambat Mengerjakan?</th>
+              <th class="text-[14px] text-wrap w-[17%]">Sudah dinilai dan diberikan feedback?</th>
+              <th class="text-[14px] w-[10%]">Aksi</th>
+            </tr>
+          </thead>
+          <!-- Tabel Body -->
+          <tbody>
+            <tr v-for="task in filteredTasks" :key="task.id">
+              <td class="text-[15px]">{{ task.title }}</td>
+              <td class="text-[15px] truncate-description">{{ task.description }}</td>
+              <td class="text-[15px]">{{ task.mata_pelajaran }}</td>
+              <td class="text-[15px]">{{ formatDate(task.deadline) }}</td>
+              <td class="text-[15px]">
+                {{ task.submission_info.is_submitted ? 'Ya' : 'Tidak' }}
+              </td>
+              <td class="text-[15px]">
+                {{
+                  task.submission_info.is_late === null || task.submission_info.is_late === 0
+                    ? 'Tidak'
+                    : 'Ya'
+                }}
+              </td>
+              <td>
+                <router-link
+            :to="getRouterInfo(task)"
+            class="btn text-[13px] text-wrap"
+            :class="{
+              'bg-red-500': !task.submission_info.is_submitted, // Warna merah biasa jika tugas belum dikumpulkan
+              'bg-red-700 text-white': task.submission_info.is_late && !task.submission_info.is_submitted, // Warna merah pekat jika tugas belum dikumpulkan dan telat
+              'bg-green-500': task.submission_info.is_submitted && !task.submission_info.scored_at, // Warna hijau jika tugas sudah dikumpulkan namun belum dinilai dan diberi feedback
+              'bg-green-700 text-white': task.submission_info.is_submitted && task.submission_info.scored_at // Warna hijau pekat jika tugas sudah dinilai
+            }"
+          >
+            <!-- Teks sesuai dengan kondisi tugas -->
+            {{
+              !task.submission_info.is_submitted
+                ? 'Tugas belum dikumpulkan'
+                : (task.submission_info.is_late ? 'Tugas terlambat dikerjakan' : '')
+                  || (task.submission_info.is_submitted && !task.submission_info.scored_at ? 'Belum ada penilaian dari guru' : '')
+                  || (task.submission_info.is_submitted && task.submission_info.scored_at ? 'Sudah dinilai oleh guru!' : '')
+            }}
+                 </router-link>
+              </td>
+              <td class="text-[15px] text-center">
+                <router-link
+                  class="btn btn-neutral text-white"
+                  :to="{ name: 'task_student_detail', params: { taskStudentId: task.id } }"
+                  >Detail</router-link
+                >
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>

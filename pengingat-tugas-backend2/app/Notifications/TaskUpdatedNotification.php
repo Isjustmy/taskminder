@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -11,16 +12,30 @@ use Kreait\Firebase\Messaging\CloudMessage;
 
 class TaskUpdatedNotification extends Notification
 {
-    public $task;
+    public $oldTask;
+    public $newTask;
+
 
     /**
      * Create a new notification instance.
      *
+     * @param  mixed  $oldTask
+     * @param  mixed  $newTask
      * @return void
      */
-    public function __construct($task)
+    public function __construct($oldTask, $newTask)
     {
-        $this->task = $task;
+        $this->oldTask = $oldTask;
+        $this->newTask = $newTask;
+
+        // Convert deadline to Carbon instance if necessary
+        if (!($this->oldTask->deadline instanceof Carbon)) {
+            $this->oldTask->deadline = Carbon::parse($this->oldTask->deadline);
+        }
+
+        if (!($this->newTask->deadline instanceof Carbon)) {
+            $this->newTask->deadline = Carbon::parse($this->newTask->deadline);
+        }
     }
 
     /**
@@ -33,8 +48,8 @@ class TaskUpdatedNotification extends Notification
     {
         return [
             FCMChannel::class,
+            'database',
             'mail',
-            'database'
         ];
     }
 
@@ -46,26 +61,38 @@ class TaskUpdatedNotification extends Notification
      */
     public function toMail($notifiable)
     {
+        $deadlineChanged = $this->oldTask->deadline->ne($this->newTask->deadline);
+        $deadlineMessage = $deadlineChanged
+            ? 'Deadline baru: ' . $this->newTask->deadline->format('d-m-Y H:i:s')
+            : 'Deadline tugas tidak berubah.';
+
         return (new MailMessage)
-            ->subject('Pembertahuan: Pembaruan Tugas "' . $this->task->title . '"')
-            ->line('Sebuah tugas baru saja diperbarui. Silahkan periksa tugas untuk mengetahui perubahannya.')
-            ->action('Lihat Tugas', url('/tasks/' . $this->task->id));
+            ->subject('Pembertahuan: Pembaruan Tugas "' . $this->oldTask->title . '"')
+            ->line('Tugas telah diperbarui dengan ' . $deadlineMessage . ' Silahkan periksa tugas untuk mengetahui perubahannya lebih lanjut.')
+            ->action('Lihat Tugas', 'http://localhost:5173/dashboard/task/student/' . $this->oldTask->id);
     }
 
     public function toFCM($notifiable): CloudMessage
     {
+        $deadlineChanged = $this->oldTask->deadline->ne($this->newTask->deadline);
+        $deadlineMessage = $deadlineChanged
+            ? 'Deadline baru: ' . $this->newTask->deadline->format('d-m-Y H:i:s')
+            : 'Deadline tugas tidak berubah.';
+
         return CloudMessage::new()
             ->withDefaultSounds()
             ->withNotification([
-                'title' => 'Pembertahuan: Pembaruan Tugas "' . $this->task->title . '"',
-                'body' => 'Tugas telah diperbarui. Silahkan periksa tugas untuk mengetahui perubahannya.',
-                'icon' => '../../public/assets/taskminder_logo 1 (mini 150x150).png'
+                'title' => 'Tugas Diperbarui: "' . $this->oldTask->title . '"',
+                'body' => 'Tugas telah diperbarui dengan ' . $deadlineMessage . '. Silahkan periksa tugas untuk mengetahui perubahannya lebih lanjut.',
+                'icon' => url('assets/taskminder_logo 1 (mini 150x150).png')
             ])
             ->withData([
-                'title' => 'Pembertahuan: Pembaruan Tugas "' . $this->task->title . '"',
+                'title' => 'Pembertahuan: Pembaruan Tugas "' . $this->oldTask->title . '"',
                 'description' => 'Tugas telah diperbarui. Silahkan periksa tugas untuk mengetahui perubahannya.',
-                'priority' => 'high'
-            ]);
+                'icon' => url('assets/taskminder_logo 1 (mini 150x150).png'),
+                'click_action' => env('FRONTEND_URL') . '/dashboard/task/student/' . $this->oldTask->id,
+            ])
+            ->withHighestPossiblePriority();
     }
 
     /**
@@ -76,11 +103,16 @@ class TaskUpdatedNotification extends Notification
      */
     public function toDatabase($notifiable)
     {
+        $deadlineChanged = $this->oldTask->deadline->ne($this->newTask->deadline);
+        $deadlineMessage = $deadlineChanged
+            ? 'Deadline baru: ' . $this->newTask->deadline->format('d-m-Y H:i:s')
+            : 'Deadline tugas tidak berubah.';
+
         return [
-            'title' => 'Pembertahuan: Pembaruan Tugas "' . $this->task->title . '"',
-            'message' => 'Tugas telah diperbarui. Silahkan periksa tugas untuk mengetahui perubahannya.',
-            'task_id' => $this->task->id,
-            'class_id' => $this->task->class_id,
+            'title' => 'Tugas Diperbarui: "' . $this->oldTask->title . '"',
+            'message' => 'Tugas telah diperbarui dengan ' . $deadlineMessage . '. Silahkan periksa tugas untuk mengetahui perubahannya lebih lanjut.',
+            'task_id' => $this->oldTask->id,
+            'class_id' => $this->oldTask->class_id,
         ];
     }
 }

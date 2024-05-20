@@ -9,6 +9,8 @@ use Illuminate\Notifications\Messages\MailMessage;
 use NotificationChannels\FCM\FCMChannel;
 use Kreait\Firebase\Messaging\CloudMessage;
 use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class TaskNotification extends Notification
 {
@@ -27,47 +29,53 @@ class TaskNotification extends Notification
 
         return [
             FCMChannel::class,
-            'mail',
             'database',
+            'mail',
         ];
     }
 
     public function toMail($notifiable)
     {
+        $formattedDeadline = Carbon::parse($this->task->deadline)->translatedFormat('d F Y H:i:s');
+
         return (new MailMessage)
             ->subject('Tugas Baru')
             ->line('Judul Tugas: ' . $this->task->title)
             ->line('Ditugaskan oleh guru ' . $this->teacherName)
             ->line('Deskripsi Tugas: ' . $this->task->description)
-            ->line('Batas waktu mengerjakan: ' . $this->task->deadline)
+            ->line('Batas waktu mengerjakan: ' . $formattedDeadline)
             ->line('Harap untuk mengerjakan tugas sebelum batas waktu tiba.')
-            ->action('Lihat Tugas', url('/tasks/' . $this->task->id));
+            ->action('Lihat Tugas', 'http://localhost:5173/dashboard/task/student/' . $this->task->id);
     }
 
     // kirim push notification ke siswa melalui FCM
     public function toFCM($notifiable): CloudMessage
     {
+        $formattedDeadline = Carbon::parse($this->task->deadline)->translatedFormat('d F Y H:i:s');
+
         return CloudMessage::new()
             ->withDefaultSounds()
             ->withNotification([
                 'title' => 'Tugas Baru: "' . $this->task->title . '"',
-                'body' => 'Tugas baru telah ditugaskan oleh guru ' . $this->teacherName . ' , dengan batas waktu ' . $this->task->deadline,
-                'icon' => '../../public/assets/taskminder_logo 1 (mini 150x150).png'
+                'body' => 'Tugas baru telah ditugaskan oleh guru ' . $this->teacherName . ' , dengan batas waktu ' . $formattedDeadline,
+                'icon' => url('assets/taskminder_logo 1 (mini 150x150).png')
             ])
             ->withData([
-                'title' => 'Tugas Baru: "' . $this->task->title . '"',
-                'description' => 'Tugas baru oleh guru ' . $this->teacherName . ' telah ditugaskan dengan judul: ' . $this->task->title . '. Batas waktu mengerjakan tugas: ' . $this->task->deadline . ', Harap untuk mengerjakan tugas sebelum batas waktu tiba.',
-                'deadline' => $this->task->deadline,
-                'priority' => 'high'
-            ]);
+                'icon' => url('assets/taskminder_logo 1 (mini 150x150).png'),
+                'click_action' => 'http://localhost:5173/dashboard/task/student/' . $this->task->id,
+            ])
+            ->withHighestPossiblePriority();
     }
 
     public function toArray($notifiable)
     {
+        $formattedDeadline = Carbon::parse($this->task->deadline)->translatedFormat('d F Y H:i:s');
+
         return [
             'title' => 'Tugas Baru: "' . $this->task->title . '"',
-            'description' => 'Tugas baru oleh guru ' . $this->teacherName . ' telah ditugaskan dengan judul: ' . $this->task->title . '. Batas waktu mengerjakan tugas: ' . $this->task->deadline . ', Harap untuk mengerjakan tugas sebelum batas waktu tiba.',
-            'deadline' => $this->task->deadline,
+            'description' => 'Tugas baru oleh guru ' . $this->teacherName . ' telah ditugaskan dengan judul: ' . $this->task->title . '. Batas waktu mengerjakan tugas: ' . $formattedDeadline . ', Harap untuk mengerjakan tugas sebelum batas waktu tiba.',
+            'deadline' => $formattedDeadline,
+            'link' => env('FRONTEND_URL') . '/dashboard/task/student/' . $this->task->id
         ];
     }
 }

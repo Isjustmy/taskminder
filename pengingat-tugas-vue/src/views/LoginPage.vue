@@ -150,11 +150,18 @@ export default {
           const userData = JSON.parse(Cookies.get('userData'));
           const userRole = userData.roles || [];
 
+          const redirectAfterLogin = sessionStorage.getItem('redirectAfterLogin');
+
           // Redirect to appropriate dashboard based on user role
           if (userRole.includes('admin') || userRole.includes('guru')) {
             this.$router.push({ name: 'home' }); // Redirect to regular dashboard
           } else if (userRole.includes('siswa') || userRole.includes('pengurus_kelas')) {
-            this.$router.push({ name: 'home_student' }); // Redirect to student dashboard
+            if (redirectAfterLogin) {
+              sessionStorage.removeItem('redirectAfterLogin');
+              this.$router.push(redirectAfterLogin);
+            } else {
+              this.$router.push({ name: 'home_student' }); // Redirect to student dashboard
+            }
           } else {
             // Handle other roles or scenarios
             this.$router.push({ name: 'home' }); // Redirect to default dashboard
