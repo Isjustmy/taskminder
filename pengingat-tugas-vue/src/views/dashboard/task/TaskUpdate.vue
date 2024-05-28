@@ -12,7 +12,7 @@
       <div class="flex mt-5">
         <div class="w-1/2 px-5">
           <div v-if="Array.isArray(role) && (role.includes('admin') || role.includes('pengurus_kelas'))
-            ">
+    ">
             <label class="block mt-4 text-sm flex">
               Guru Mata Pelajaran
               <p class="text-red-700">*</p>
@@ -27,8 +27,8 @@
           </div>
 
           <div v-if="Array.isArray(role) &&
-            (role.includes('admin') || role.includes('guru') || role.includes('pengurus_kelas'))
-            ">
+    (role.includes('admin') || role.includes('guru') || role.includes('pengurus_kelas'))
+    ">
             <label class="block text-sm flex mt-4">
               Kelas
               <p class="text-red-700">*</p>
@@ -63,9 +63,7 @@
               class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
               rows="4"></textarea>
           </div>
-        </div>
 
-        <div class="w-1/2 px-5">
           <div>
             <label class="block mt-4 text-sm flex">
               Deadline Tugas
@@ -76,11 +74,13 @@
               class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
               @update:modelValue="handleDeadlineChange" :min-date="new Date()" />
           </div>
+        </div>
 
+        <div class="w-1/2 px-5">
           <div>
             <label class="block mt-4 text-sm flex"> Lampiran </label>
             <input type="file" for="file" id="file" name="file" class="file-input file-input-bordered w-full max-w-xs"
-              @change="handleFileChange" />
+            @change="handleFileChange" />
           </div>
 
           <div>
@@ -269,8 +269,8 @@ export default {
       }
     },
     handleFileChange(event) {
-      const selectedFile = event.target.files[0]
-      this.formData.selectedFiles = selectedFile
+      const selectedFile = event.target.files[0];
+      this.formData.selectedFiles = selectedFile;
     },
     async updateTask() {
       this.loadingButton = true
@@ -282,13 +282,16 @@ export default {
         formData2.append('class_id', this.formData.class_id)
         formData2.append('teacher_id', this.formData.teacher_id)
 
-        if (this.formData.file) {
-          formData2.append('file', this.formData.selectedFiles) // Change to selectedFiles instead of this.formData.selectedFile
+        // Hanya tambahkan file jika ada yang dipilih
+        if (this.formData.selectedFiles) {
+          formData2.append('file', this.formData.selectedFiles);
         }
 
-        if (this.formData.link) {
-          formData2.append('link', this.formData.link)
+        // Cek jika link adalah 'null', ubah menjadi string kosong
+        if (this.formData.link === 'null' || this.formData.link === "null" || this.formData.link === 'NULL' || this.formData.link === null) {
+          this.formData.link = '';
         }
+        formData2.append('link', this.formData.link);
 
         // Tambahkan console.log untuk melihat data yang dikirim
         console.log('Form Data:', {
@@ -301,10 +304,7 @@ export default {
           link: this.formData.link,
         });
 
-        const response = await api({
-          method: 'post',
-          url: `/api/tasks/${this.taskId}/update`,
-          data: formData2,
+        const response = await api.post(`/api/tasks/${this.taskId}/update`, formData2, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }

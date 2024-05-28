@@ -34,7 +34,7 @@
             <tr>
               <th class="text-wrap text-sm px-0 border border-black" style="min-width: 50px; width: 50px;">Nomor Absen</th>
               <th class="text-wrap border border-black" style="min-width: 200px; width: 200px;">Nama</th>
-              <th class="text-wrap border border-black" v-for="task in tasks" :key="task.task_id" style="min-width: 80px; width: 80px;">{{ task.judul_tugas }}</th>
+              <th class="text-wrap border border-black" v-for="task in tasks" :key="task.task_id" style="min-width: 80px; width: 80px;">Tugas "{{ task.judul_tugas }}"</th>
             </tr>
           </thead>
           <tbody>

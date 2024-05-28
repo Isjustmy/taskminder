@@ -692,7 +692,7 @@ class TaskController extends Controller
             'deadline' => 'required|date',
             'teacher_id' => (($user->hasRole('pengurus_kelas') || $user->hasRole('admin')) ? 'required|integer|exists:users,id' : 'nullable'),
             'file' => 'nullable|file|max:2048',
-            'link' => 'nullable|string',
+            'link' => 'nullable|url',
         ]);
 
         if ($validator->fails()) {
@@ -932,6 +932,7 @@ class TaskController extends Controller
         return new TaskResource(true, 'Tugas berhasil dinilai oleh guru', $task);
     }
 
+
     public function update(Request $request, $taskId)
     {
         $userAuth = auth()->guard('api')->user();
@@ -939,18 +940,22 @@ class TaskController extends Controller
 
         if ($userAuth) { // Memeriksa apakah pengguna masuk
             $userRoles = $userAuth->roles->pluck('name'); // Mendapatkan daftar peran pengguna
-            $isUserGuru = $userRoles->contains('guru'); // Memeriksa apakah pengguna memiliki peran 'admin'
+            $isUserGuru = $userRoles->contains('guru'); // Memeriksa apakah pengguna memiliki peran 'guru'
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pengguna tidak terautentikasi.',
+            ], 401);
         }
 
-        // Validasi masukan pengguna
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:100',
             'description' => 'required|string',
             'class_id' => 'required|integer|exists:student_classes,id',
             'deadline' => 'required|date',
             'teacher_id' => (!$isUserGuru ? 'required|integer|exists:users,id' : 'nullable'),
-            'file' => 'nullable',
-            'link' => 'nullable',
+            'file' => 'nullable|file|max:2048',
+            'link' => 'nullable|url',
         ]);
 
         if ($validator->fails()) {
@@ -999,21 +1004,23 @@ class TaskController extends Controller
         $taskData = $request->only(['title', 'description', 'deadline', 'teacher_id', 'link']);
 
         $old_taskPath = $oldTask->file_path;
+        $old_link = $oldTask->link;
 
-        // Periksa apakah ada file yang diunggah dalam permintaan
+        // Menyimpan file penugasan dari guru jika ada
         if ($request->hasFile('file')) {
             // Hapus file lama jika ada
             if ($old_taskPath) {
-                // Dapatkan nama file dari URL
                 $oldFile = basename($old_taskPath);
-
-                // Hapus file lama dari sistem penyimpanan
                 Storage::disk('public')->delete('files_from_teacher/' . $oldFile);
             }
-
             // Simpan file yang baru di storage
             $filePath = $request->file('file')->store('files_from_teacher', 'public');
             $taskData['file_path'] = $filePath;
+        }
+
+        // Periksa apakah ada link dalam permintaan
+        if ($request->has('link')) {
+            $taskData['link'] = $request->input('link');
         }
 
         // Jika tugas tidak mengubah id kelas
@@ -1066,7 +1073,7 @@ class TaskController extends Controller
         }
 
         // Update informasi tugas
-        $task->update(array_merge($taskData, ['class_id' => $request->input('class_id'), 'file_path' => $filePath]));
+        $task->update(array_merge($taskData, ['class_id' => $request->input('class_id')]));
 
         return response()->json([
             'success' => true,

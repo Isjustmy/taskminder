@@ -30,7 +30,7 @@ class TaskNotification extends Notification
         return [
             FCMChannel::class,
             'database',
-            'mail',
+            // 'mail',
         ];
     }
 
