@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Log;
 
 class TaskNotification extends Notification
 {
-
     protected $task;
     protected $teacherName;
 
@@ -30,7 +29,7 @@ class TaskNotification extends Notification
         return [
             FCMChannel::class,
             'database',
-            // 'mail',
+            'mail',
         ];
     }
 

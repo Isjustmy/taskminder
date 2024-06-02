@@ -20,8 +20,8 @@
             <select id="teacher_id" name="teacher_id" v-model="formData.teacher_id" required
               class="w-full px-4 py-2 text-sm border rounded-md focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-600">
               <option v-if="loadingTeacherData">Sedang Memuat...</option>
-              <option v-else v-for="teacher in teachers" :key="teacher.id" :value="teacher.id">
-                {{ teacher.name }} - {{ teacher.guru_mata_pelajaran }}
+              <option v-else v-for="teacher in teachers" :key="teacher.nama_guru" :value="teacher.id">
+                {{ teacher.nama_guru }} - {{ teacher.mata_pelajaran }}
               </option>
             </select>
           </div>
@@ -80,7 +80,15 @@
           <div>
             <label class="block mt-4 text-sm flex"> Lampiran </label>
             <input type="file" for="file" id="file" name="file" class="file-input file-input-bordered w-full max-w-xs"
-            @change="handleFileChange" />
+              @change="handleFileChange" />
+            <div class="kontainer-gambar-tombol flex">
+              <img v-if="isImageFile || formData.file_path" :src="imagePreviewUrl || formData.file_path"
+                alt="Gambar Preview" class="mt-2 w-40 h-auto cursor-pointer"
+                @click="openFullImageModal(imagePreviewUrl || formData.file_path)" />
+              <button v-if="formData.selectedFiles" @click="clearFile" class="btn btn-warning mt-2 ml-4">Batalkan
+                Pilihan
+                Gambar</button>
+            </div>
           </div>
 
           <div>
@@ -109,6 +117,15 @@
             Sedang Memproses...
           </button>
         </div>
+        <dialog id="fullImageModal" class="modal">
+          <div class="modal-box">
+            <button class="btn btn-close btn-neutral" @click="closeFullImageModal">
+              &times;
+            </button>
+            <!-- Gambar penuh -->
+            <img :src="fullImageUrl" alt="Full Image" class="w-full h-auto" />
+          </div>
+        </dialog>
       </div>
     </div>
   </div>
@@ -141,6 +158,9 @@ export default {
       loadingClassData: false,
       loadingTeacherData: false,
       loadingTaskData: false,
+      imagePreviewUrl: '',
+      fullImageUrl: '',
+      selectedFileName: '',
       toast: useToast()
     }
   },
@@ -155,7 +175,10 @@ export default {
         minutes: now.getMinutes(),
         seconds: now.getSeconds()
       }
-    }
+    },
+    isImageFile() {
+      return this.formData.selectedFiles && this.formData.selectedFiles.type.startsWith('image/');
+    },
   },
   components: {
     VueDatePicker
@@ -163,6 +186,42 @@ export default {
   methods: {
     goBack() {
       this.$router.go(-1)
+    },
+    handleFileChange(event) {
+      const file = event.target.files[0];
+      this.formData.selectedFiles = file;
+      this.selectedFileName = file ? file.name : '';
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          this.imagePreviewUrl = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        this.imagePreviewUrl = '';
+      }
+    },
+    createImagePreviewUrl(file) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        this.imagePreviewUrl = e.target.result
+      }
+      reader.readAsDataURL(file)
+    },
+    openFullImageModal(imageUrl) {
+      this.fullImageUrl = imageUrl
+      const fullImageModal = document.getElementById('fullImageModal')
+      fullImageModal.showModal()
+    },
+    closeFullImageModal() {
+      const fullImageModal = document.getElementById('fullImageModal')
+      fullImageModal.close()
+    },
+    clearFile() {
+      this.formData.selectedFiles = null
+      this.selectedFileName = ''
+      this.imagePreviewUrl = ''
+      document.getElementById('file').value = ''
     },
     formatDeadline(deadline) {
       const date = new Date(deadline)
@@ -177,8 +236,12 @@ export default {
     async fetchTeachers() {
       this.loadingTeacherData = true
       try {
-        const response = await api.get('/api/getTeacherData')
-        this.teachers = response.data.data
+        const response = await api.get('/api/listTeacherForCreateTask')
+        this.teachers = response.data.data.map(teacher => ({
+          id: teacher.id,
+          nama_guru: teacher.name, // Pastikan ini sesuai dengan properti nama guru dari respons server
+          mata_pelajaran: teacher.guru_mata_pelajaran // Pastikan ini sesuai dengan properti mata pelajaran dari respons server
+        }))
         this.loadingTeacherData = false
       } catch (error) {
         this.loadingTeacherData = false
@@ -212,8 +275,20 @@ export default {
           this.formData.title = task.title
           this.formData.description = task.description
           this.formData.link = task.link
-          this.formData.file = task.file_path
           this.formData.class_id = task.class_id
+
+         
+      // Jika ada file di backend, buat URL preview dan set sebagai file yang dipilih
+      if (task.file_path) {
+        const fileUrl = task.file_path;
+        const fileName = fileUrl.split('/').pop();
+
+        // Membuat objek file palsu untuk dimasukkan ke dalam formData
+        const fakeFile = new File([''], fileName, { type: 'image/jpeg' });
+        this.formData.selectedFiles = fakeFile;
+        this.selectedFileName = fileName;
+        this.imagePreviewUrl = fileUrl;
+      }
 
           // You may also need to format the deadline date if necessary
           this.formData.deadline = this.formatDeadline(task.deadline)
@@ -268,10 +343,6 @@ export default {
         console.error('Error fetching classes:', error)
       }
     },
-    handleFileChange(event) {
-      const selectedFile = event.target.files[0];
-      this.formData.selectedFiles = selectedFile;
-    },
     async updateTask() {
       this.loadingButton = true
       try {
@@ -280,7 +351,10 @@ export default {
         formData2.append('description', this.formData.description)
         formData2.append('deadline', this.formData.deadline)
         formData2.append('class_id', this.formData.class_id)
-        formData2.append('teacher_id', this.formData.teacher_id)
+
+        if (this.formData.teacher_id){
+          formData2.append('teacher_id', this.formData.teacher_id)
+        }
 
         // Hanya tambahkan file jika ada yang dipilih
         if (this.formData.selectedFiles) {

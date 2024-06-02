@@ -9,15 +9,15 @@ class Kernel extends ConsoleKernel
 {
 
     protected $commands = [
-        // ...
-    ];
+        Commands\RunScheduledJobs::class,
+    ];    
 
     /**
      * Define the application's command schedule.
      */
-    protected function schedule(Schedule $schedule): void
+    protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        $schedule->command('jobs:dispatch-mark-late-submissions')->everyMinute();
     }
 
     /**
@@ -25,7 +25,7 @@ class Kernel extends ConsoleKernel
      */
     protected function commands(): void
     {
-        $this->load(__DIR__.'/Commands');
+        $this->load(__DIR__ . '/Commands');
 
         require base_path('routes/console.php');
     }

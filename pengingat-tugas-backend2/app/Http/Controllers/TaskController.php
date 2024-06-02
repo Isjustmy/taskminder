@@ -350,7 +350,15 @@ class TaskController extends Controller
 
         $additionalData = StudentTasks::where('task_id', $taskId)->where('student_id', $studentId)->first();
 
-        return response()->json(['success' => true, 'tasks' => $tasks, 'additional_data' => $additionalData ?? null]);
+        // Ambil data guru yang memberikan tugas
+        $teacher = $task->creator()->select('id', 'name')->first();
+
+        return response()->json([
+            'success' => true,
+            'tasks' => $tasks,
+            'additional_data' => $additionalData ?? null,
+            'teacher' => $teacher
+        ]);
     }
 
 
@@ -833,7 +841,7 @@ class TaskController extends Controller
     {
         // Validasi input
         $validator = Validator::make($request->all(), [
-            'file' => 'required|file|mimes:pdf,doc,docx,png,jpg,jpeg,zip|max:2000',
+            'file' => 'required|file|mimes:pdf,doc,docx,png,jpg,jpeg,zip|max:2048',
             'link' => 'nullable|url',
         ]);
 
@@ -851,6 +859,20 @@ class TaskController extends Controller
         // Cari tugas berdasarkan ID
         $task = Task::findOrFail($taskId);
 
+        // Cek apakah tugas sudah disubmit dan sudah dinilai
+        $existingSubmission = StudentTasks::where('task_id', $taskId)
+            ->where('student_id', $studentId)
+            ->first();
+
+        if ($existingSubmission) {
+            if ($existingSubmission->score !== null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tugas sudah disubmit dan sudah dinilai, tidak bisa submit ulang.',
+                ], 403);
+            }
+        }
+
         // Siapkan data yang akan di-submit
         $submittedTaskData = [
             'student_id' => $studentId,
@@ -864,21 +886,14 @@ class TaskController extends Controller
 
         // Tentukan apakah tugas di-submit terlambat
         $isLateSubmission = $task->deadline <= Carbon::now();
+        $submittedTaskData['is_late'] = $isLateSubmission;
 
         // Hapus file lama jika ada
         if ($request->file('file')) {
-            // Periksa apakah ada entri submission yang sudah ada
-            $existingSubmission = StudentTasks::where('task_id', $taskId)
-                ->where('student_id', $studentId)
-                ->first();
-
-            // Jika ada entri submission yang sudah ada dan memiliki file_path, hapus file tersebut
             if ($existingSubmission && $existingSubmission->file_path) {
                 $fileNameReal = basename($existingSubmission->file_path);
                 Storage::disk('public')->delete('task_files/' . $fileNameReal);
             }
-
-            $filePath = null;
 
             $filePath = $request->file('file')->store('task_files', 'public');
             $submittedTaskData['file_path'] = $filePath;
@@ -887,13 +902,20 @@ class TaskController extends Controller
         // Simpan data tugas siswa
         $submittedTask = StudentTasks::updateOrCreate(
             ['task_id' => $taskId, 'student_id' => $studentId],
-            $submittedTaskData + ['is_late' => $isLateSubmission]
+            $submittedTaskData
         );
 
         if ($submittedTask) {
-            return new TaskResource(true, 'Tugas berhasil disubmit oleh siswa', $submittedTask);
+            return response()->json([
+                'success' => true,
+                'message' => 'Tugas berhasil disubmit oleh siswa',
+                'data' => $submittedTask,
+            ]);
         } else {
-            return new TaskResource(false, 'Gagal submit tugas.', null);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal submit tugas.',
+            ], 500);
         }
     }
 
@@ -937,10 +959,12 @@ class TaskController extends Controller
     {
         $userAuth = auth()->guard('api')->user();
         $isUserGuru = false; // Default value false, jika pengguna tidak memiliki peran Guru
+        $isPengurusKelas = false; // Default value false, jika pengguna tidak memiliki peran Pengurus Kelas
 
         if ($userAuth) { // Memeriksa apakah pengguna masuk
             $userRoles = $userAuth->roles->pluck('name'); // Mendapatkan daftar peran pengguna
             $isUserGuru = $userRoles->contains('guru'); // Memeriksa apakah pengguna memiliki peran 'guru'
+            $isPengurusKelas = $userRoles->contains('pengurus_kelas'); // Memeriksa apakah pengguna memiliki peran 'pengurus_kelas'
         } else {
             return response()->json([
                 'success' => false,
@@ -948,10 +972,20 @@ class TaskController extends Controller
             ], 401);
         }
 
+        // Jika pengguna adalah pengurus_kelas, mencegah perubahan class_id
+        if ($isPengurusKelas && $request->has('class_id')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pengguna dengan peran pengurus kelas tidak diperbolehkan mengubah ID kelas.',
+            ], 403);
+        }
+
+        $classIdRule = $isPengurusKelas ? 'nullable' : 'required|integer|exists:student_classes,id';
+
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:100',
             'description' => 'required|string',
-            'class_id' => 'required|integer|exists:student_classes,id',
+            'class_id' => $classIdRule,
             'deadline' => 'required|date',
             'teacher_id' => (!$isUserGuru ? 'required|integer|exists:users,id' : 'nullable'),
             'file' => 'nullable|file|max:2048',
@@ -1175,6 +1209,22 @@ class TaskController extends Controller
                 ->where('teacher_id', $teacherId)
                 ->firstOrFail();
 
+            // Periksa apakah tugas sudah disubmit
+            if (!$studentTask->is_submitted) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tugas belum disubmit, tidak ada yang perlu dihapus.',
+                ], 403);
+            }
+
+            // Periksa apakah tugas sudah dinilai
+            if ($studentTask->score !== null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tugas sudah dinilai, tidak bisa dihapus.',
+                ], 403);
+            }
+
             // Dapatkan nama file dari URL
             $fileNameStudent = basename($studentTask->file_path);
 
@@ -1195,11 +1245,20 @@ class TaskController extends Controller
                 // Kolom lain yang perlu direset ke nilai default di sini
             ]);
 
-            return new TaskResource(true, 'Tugas siswa berhasil dihapus (direset)', []);
+            return response()->json([
+                'success' => true,
+                'message' => 'Tugas siswa berhasil dihapus (direset)',
+            ]);
         } catch (ModelNotFoundException $e) {
-            return new TaskResource(false, 'Tugas siswa tidak ditemukan!', null);
+            return response()->json([
+                'success' => false,
+                'message' => 'Tugas siswa tidak ditemukan!',
+            ], 404);
         } catch (\Exception $e) {
-            return new TaskResource(false, 'Gagal mereset tugas siswa.', null);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mereset tugas siswa.',
+            ], 500);
         }
     }
 

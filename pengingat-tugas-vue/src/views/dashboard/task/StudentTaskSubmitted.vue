@@ -3,10 +3,7 @@
     <div v-if="role === 'guru'">
       <div>
         <div class="ml-5 text-2xl font-bold flex">
-          <button
-            @click="goBack"
-            class="btn btn-neutral text-white hover:bg-white hover:text-black"
-          >
+          <button @click="goBack" class="btn btn-neutral text-white hover:bg-white hover:text-black">
             <font-awesome-icon icon="arrow-left" />
           </button>
           <h1 class="pt-2 ml-8">List Penugasan Siswa</h1>
@@ -54,14 +51,14 @@
                     {{ student.student_class ? student.student_class : '-' }}
                   </td>
                   <td class="text-center border border-black text-[16px] px-1 py-2">
-                    {{ student.submission_info.is_submitted ? 'Ya' : 'Belum' }}
+                    {{ student.submission_info.is_submitted ? 'Sudah Dikumpulkan' : 'Belum Dikumpulkan' }}
                   </td>
                   <td class="text-center border border-black text-[16px] px-1 py-2">
                     {{
-                      student.submission_info.is_late === '-' ||
-                      student.submission_info.is_late === 0
-                        ? 'Tidak'
-                        : 'Ya'
+                    student.submission_info.is_late === '-' ||
+                    student.submission_info.is_late === 0
+                    ? 'Tidak'
+                    : 'Ya'
                     }}
                   </td>
                   <td class="text-center border border-black text-[16px] px-1 py-2">
@@ -69,17 +66,21 @@
                   </td>
                   <td class="text-center border border-black text-[16px] px-1 py-2">
                     {{
-                      student.submission_info.submitted_at === '-'
-                        ? '-'
-                        : `${formatDate(student.submission_info.submitted_at)}`
+                    student.submission_info.submitted_at === '-'
+                    ? '-'
+                    : `${formatDate(student.submission_info.submitted_at)}`
                     }}
                   </td>
                   <td class="border border-black text-[16px] px-1 py-2">
                     <router-link
-                      :to="{ name: 'student_detailed_submit', params: { task_id: task_id, student_task_id: student.submission_info.id_submit }  }"
-                      class="btn btn-warning ml-1"
-                      >Data Submit</router-link
-                    >
+                      :to="{ name: 'student_detailed_submit', params: { task_id: task_id, student_task_id: student.submission_info.id_submit } }"
+                      :class="{
+                        'bg-red-500 text-white': !student.submission_info.is_submitted,
+                        'bg-red-800 text-white': !student.submission_info.is_submitted && student.submission_info.is_late === 1,
+                        'bg-green-700 text-white': student.submission_info.is_submitted,
+                      }" class="btn text-[13px] text-wrap ml-1">
+                      Data Submit
+                    </router-link>
                   </td>
                 </tr>
               </tbody>

@@ -99,7 +99,6 @@ class UserController extends Controller
         }
     }
 
-
     public function getTeacherData(Request $request)
     {
         // Memeriksa apakah parameter mata pelajaran disertakan dalam permintaan
@@ -137,6 +136,27 @@ class UserController extends Controller
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat mengambil data guru.',
                 'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
+    public function getTeacherDataForTaskCreate()
+    {
+        try {
+            // Mengambil data guru dengan mata pelajaran beserta ID usernya
+            $teachers = User::whereNotNull('guru_mata_pelajaran')
+                ->get(['id', 'name', 'guru_mata_pelajaran']);
+
+            // Mengembalikan respons JSON
+            return response()->json([
+                'success' => true,
+                'data' => $teachers
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi Kesalahan dalam mengambil data guru'
             ], 500);
         }
     }
@@ -357,7 +377,7 @@ class UserController extends Controller
 
 
     /**
-     * Store a newly created resource in storage.
+     * Store a new user.
      *
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\Response

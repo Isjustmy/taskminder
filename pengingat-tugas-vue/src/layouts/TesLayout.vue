@@ -188,7 +188,8 @@
                 role.includes('siswa') || role.includes('pengurus_kelas')
                   ? 'home_student'
                   : 'home'
-            }" class="flex items-center w-full gap-x-3 py-2 px-2.5 hover:bg-blue-600 text-sm text-white rounded-lg">
+            }" class="flex items-center w-full gap-x-3 py-2 px-2.5 hover:bg-blue-600 text-sm text-white rounded-lg"
+              active-class="bg-blue-700">
               <font-awesome-icon icon="home" class="pb-0.5" />
               Home
             </router-link>
@@ -225,29 +226,29 @@
               <ul class="pt-2 ps-2">
                 <li>
                   <router-link :to="{ name: 'user_admin' }"
-                    class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-white hover:text-white rounded-lg hover:bg-blue-600"
-                    href="#">
+                    class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-white rounded-lg hover:bg-blue-600"
+                    active-class="bg-blue-700" href="#">
                     User Admin
                   </router-link>
                 </li>
                 <li>
                   <router-link :to="{ name: 'user_guru' }"
-                    class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-white hover:text-white rounded-lg hover:bg-blue-600"
-                    href="#">
+                    class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-white rounded-lg hover:bg-blue-600"
+                    active-class="bg-blue-700" href="#">
                     User Guru
                   </router-link>
                 </li>
                 <li>
                   <router-link :to="{ name: 'user_siswa' }"
-                    class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-white hover:text-white rounded-lg hover:bg-blue-600"
-                    href="#">
+                    class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-white rounded-lg hover:bg-blue-600"
+                    active-class="bg-blue-700" href="#">
                     User Siswa
                   </router-link>
                 </li>
                 <li>
                   <router-link :to="{ name: 'user_pengurus_kelas' }"
-                    class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-white hover:text-white rounded-lg hover:bg-blue-600"
-                    href="#">
+                    class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-white rounded-lg hover:bg-blue-600"
+                    active-class="bg-blue-700" href="#">
                     User Pengurus Kelas
                   </router-link>
                 </li>
@@ -263,7 +264,8 @@
                   ? 'task_student_list'
                   : 'task'
             }" type="button"
-              class="hs-accordion-toggle w-full text-start flex items-center gap-x-3.5 py-2 px-2.5 hs-accordion-active:text-white hs-accordion-active:hover:bg-transparent text-sm text-white hover:text-white rounded-lg hover:bg-blue-600">
+              class="flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-white rounded-lg hover:bg-blue-600"
+              active-class="bg-blue-700">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
                 class="flex-shrink-0 mt-0.5 size-4">
                 <path
@@ -361,7 +363,8 @@
 
           <li v-if="role === 'siswa' || role === 'pengurus_kelas'">
             <router-link :to="{ name: 'calendar_home' }"
-              class="w-full flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-white hover:text-white rounded-lg hover:bg-blue-600-300">
+              class="w-full flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-white rounded-lg hover:bg-blue-600"
+              active-class="bg-blue-700">
               <svg class="flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                 stroke-linejoin="round">
@@ -381,8 +384,8 @@
           </li>
           <li v-if="role === 'guru'">
             <router-link
-              class="w-full flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-white hover:text-white rounded-lg hover:bg-blue-600-300"
-              :to="{ name: 'rekapitulasi' }">
+              class="w-full flex items-center gap-x-3.5 py-2 px-2.5 text-sm text-white rounded-lg hover:bg-blue-600"
+              active-class="bg-blue-700" :to="{ name: 'rekapitulasi' }">
               <svg class="flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                 stroke-linejoin="round">

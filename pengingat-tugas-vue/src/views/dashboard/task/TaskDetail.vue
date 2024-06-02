@@ -84,11 +84,10 @@
                   <a :href="detailedTasks.file_path" target="_blank">Download File Tugas</a>
                 </div>
               </div>
-            </div>
+          </div>
             <div class="ml-16 mt-3">
               <h1 class="text-lg font-bold">Link</h1>
-              <input type="text" class="input input-bordered w-full max-w-xs overflow-x-auto" :value="loadingDataTasks ? 'Memuat...' : detailedTasks.link || 'Tidak ada link tugas'
-    " readonly />
+              <input type="text" class="input input-bordered w-full max-w-xs overflow-x-auto" :value="loadingDataTasks ? 'Memuat...' : detailedTasks.link || 'Tidak ada link tugas'" readonly />
             </div>
           </div>
         </div>

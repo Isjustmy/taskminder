@@ -65,24 +65,28 @@
               </td>
               <td>
                 <router-link
-            :to="getRouterInfo(task)"
-            class="btn text-[13px] text-wrap"
-            :class="{
-              'bg-red-500': !task.submission_info.is_submitted, // Warna merah biasa jika tugas belum dikumpulkan
-              'bg-red-700 text-white': task.submission_info.is_late && !task.submission_info.is_submitted, // Warna merah pekat jika tugas belum dikumpulkan dan telat
-              'bg-green-500': task.submission_info.is_submitted && !task.submission_info.scored_at, // Warna hijau jika tugas sudah dikumpulkan namun belum dinilai dan diberi feedback
-              'bg-green-700 text-white': task.submission_info.is_submitted && task.submission_info.scored_at // Warna hijau pekat jika tugas sudah dinilai
-            }"
-          >
-            <!-- Teks sesuai dengan kondisi tugas -->
-            {{
-              !task.submission_info.is_submitted
-                ? 'Tugas belum dikumpulkan'
-                : (task.submission_info.is_late ? 'Tugas terlambat dikerjakan' : '')
-                  || (task.submission_info.is_submitted && !task.submission_info.scored_at ? 'Belum ada penilaian dari guru' : '')
-                  || (task.submission_info.is_submitted && task.submission_info.scored_at ? 'Sudah dinilai oleh guru!' : '')
-            }}
-                 </router-link>
+                    :to="getRouterInfo(task)"
+                    class="btn text-[13px] text-wrap"
+                    :class="{
+                      'bg-red-500': !task.submission_info.is_submitted, // Warna merah jika tugas belum dikumpulkan
+                      'bg-green-700 text-white': !task.submission_info.is_late && task.submission_info.is_submitted && !task.submission_info.scored_at, // Warna hijau jika tugas sudah dikumpulkan namun belum dinilai dan tidak telat
+                      'bg-yellow-500 text-black': task.submission_info.is_late && task.submission_info.is_submitted && !task.submission_info.scored_at, // Warna kuning jika tugas sudah dikumpulkan namun belum dinilai dan telat
+                      'bg-green-500': task.submission_info.is_submitted && task.submission_info.scored_at, // Warna hijau pekat jika tugas sudah dinilai
+                    }"
+                >
+                  <!-- Teks sesuai dengan kondisi tugas -->
+                  {{
+                    !task.submission_info.is_submitted
+                      ? 'Tugas belum dikumpulkan'
+                      : task.submission_info.is_submitted && !task.submission_info.scored_at
+                      ? 'Belum ada penilaian dari guru'
+                      : task.submission_info.is_submitted && task.submission_info.scored_at && !task.submission_info.has_feedback
+                      ? 'Tugas sudah dinilai oleh guru!'
+                      : task.submission_info.is_submitted && task.submission_info.scored_at && task.submission_info.has_feedback
+                      ? 'Tugas sudah dinilai dan diberikan feedback oleh guru!'
+                      : 'Terjadi kesalahan!'
+                  }}
+                </router-link>
               </td>
               <td class="text-[15px] text-center">
                 <router-link

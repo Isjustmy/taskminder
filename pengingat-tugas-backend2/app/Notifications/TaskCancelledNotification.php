@@ -12,6 +12,7 @@ use NotificationChannels\FCM\FCMChannel;
 
 class TaskCancelledNotification extends Notification
 {
+
     protected $oldTaskData;
 
     /**

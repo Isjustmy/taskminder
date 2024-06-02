@@ -43,7 +43,10 @@ Route::post('/import/nip', [IdentifierController::class, 'importNIP']);
 // Apply auth:api middleware to all routes
 Route::middleware('auth:api')->group(function () {
 
+    Route::get('/listTeacherForCreateTask',[UserController::class, 'getTeacherDataForTaskCreate'])->middleware('role:admin|pengurus_kelas|guru');
+    
     Route::get('/getTeacherData',[UserController::class, 'getTeacherData'])->middleware('role:admin|pengurus_kelas|guru');
+
 
     Route::get('/tesRole', [TaskController::class, 'tesGetRole']);
 

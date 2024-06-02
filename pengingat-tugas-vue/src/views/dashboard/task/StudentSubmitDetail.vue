@@ -210,6 +210,14 @@ export default {
       confirmationModal.close()
     },
     async sendGrade() {
+      if (this.score === null || this.score < 1 || this.score > 100) {
+        this.toast.error('Nilai harus di antara 1 dan 100', {
+          position: 'top-center',
+          timeout: 2000,
+          hideProgressBar: false
+        });
+        return;
+      }
       this.loadingScore = true
       try {
         const response = await api.put(`/api/tasks/${this.taskId}/grade`, {
