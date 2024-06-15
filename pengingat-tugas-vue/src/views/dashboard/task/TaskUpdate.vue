@@ -27,7 +27,7 @@
           </div>
 
           <div v-if="Array.isArray(role) &&
-    (role.includes('admin') || role.includes('guru') || role.includes('pengurus_kelas'))
+    (role.includes('admin') || role.includes('guru'))
     ">
             <label class="block text-sm flex mt-4">
               Kelas
@@ -242,6 +242,7 @@ export default {
           nama_guru: teacher.name, // Pastikan ini sesuai dengan properti nama guru dari respons server
           mata_pelajaran: teacher.guru_mata_pelajaran // Pastikan ini sesuai dengan properti mata pelajaran dari respons server
         }))
+        this.formData.teacher_id = this.teachers[0].id;
         this.loadingTeacherData = false
       } catch (error) {
         this.loadingTeacherData = false
@@ -260,7 +261,6 @@ export default {
           this.formData.title = task.title
           this.formData.description = task.description
           this.formData.link = task.link
-          this.formData.file = task.file_path
           this.formData.class_id = task.class_id
 
           // You may also need to format the deadline date if necessary
@@ -277,18 +277,18 @@ export default {
           this.formData.link = task.link
           this.formData.class_id = task.class_id
 
-         
-      // Jika ada file di backend, buat URL preview dan set sebagai file yang dipilih
-      if (task.file_path) {
-        const fileUrl = task.file_path;
-        const fileName = fileUrl.split('/').pop();
 
-        // Membuat objek file palsu untuk dimasukkan ke dalam formData
-        const fakeFile = new File([''], fileName, { type: 'image/jpeg' });
-        this.formData.selectedFiles = fakeFile;
-        this.selectedFileName = fileName;
-        this.imagePreviewUrl = fileUrl;
-      }
+          // Jika ada file di backend, buat URL preview dan set sebagai file yang dipilih
+          if (task.file_path) {
+            const fileUrl = task.file_path;
+            const fileName = fileUrl.split('/').pop();
+
+            // Membuat objek file palsu untuk dimasukkan ke dalam formData
+            const fakeFile = new File([''], fileName, { type: 'image/jpeg' });
+            this.formData.selectedFiles = fakeFile;
+            this.selectedFileName = fileName;
+            this.imagePreviewUrl = fileUrl;
+          }
 
           // You may also need to format the deadline date if necessary
           this.formData.deadline = this.formatDeadline(task.deadline)
@@ -308,9 +308,21 @@ export default {
           this.formData.title = task.title
           this.formData.description = task.description
           this.formData.link = task.link
-          this.formData.file = task.file_path
           this.formData.class_id = task.class_id
           this.formData.deadline = this.formatDeadline(task.deadline)
+          
+
+          // Jika ada file di backend, buat URL preview dan set sebagai file yang dipilih
+          if (task.file_path) {
+            const fileUrl = task.file_path;
+            const fileName = fileUrl.split('/').pop();
+
+            // Membuat objek file palsu untuk dimasukkan ke dalam formData
+            const fakeFile = new File([''], fileName, { type: 'image/jpeg' });
+            this.formData.selectedFiles = fakeFile;
+            this.selectedFileName = fileName;
+            this.imagePreviewUrl = fileUrl;
+          }
 
           const selectedClass = this.classes.find((classOption) => classOption.id === task.class_id)
           if (selectedClass) {
@@ -352,7 +364,7 @@ export default {
         formData2.append('deadline', this.formData.deadline)
         formData2.append('class_id', this.formData.class_id)
 
-        if (this.formData.teacher_id){
+        if (this.formData.teacher_id) {
           formData2.append('teacher_id', this.formData.teacher_id)
         }
 

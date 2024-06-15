@@ -69,7 +69,7 @@ class TaskUpdatedNotification extends Notification
         return (new MailMessage)
             ->subject('Pembertahuan: Pembaruan Tugas "' . $this->oldTask->title . '"')
             ->line('Tugas telah diperbarui dengan ' . $deadlineMessage . ' Silahkan periksa tugas untuk mengetahui perubahannya lebih lanjut.')
-            ->action('Lihat Tugas', 'http://localhost:5173/dashboard/task/student/' . $this->oldTask->id);
+            ->action('Lihat Tugas', 'https://taskminder.pplgsmkn1ciomas.my.id/dashboard/task/student/' . $this->oldTask->id);
     }
 
     public function toFCM($notifiable): CloudMessage
@@ -90,7 +90,7 @@ class TaskUpdatedNotification extends Notification
                 'title' => 'Pembertahuan: Pembaruan Tugas "' . $this->oldTask->title . '"',
                 'description' => 'Tugas telah diperbarui. Silahkan periksa tugas untuk mengetahui perubahannya.',
                 'icon' => url('assets/taskminder_logo 1 (mini 150x150).png'),
-                'click_action' => env('FRONTEND_URL') . '/dashboard/task/student/' . $this->oldTask->id,
+                'click_action' =>'https://taskminder.pplgsmkn1ciomas.my.id/dashboard/task/student/' . $this->oldTask->id,
             ])
             ->withHighestPossiblePriority();
     }

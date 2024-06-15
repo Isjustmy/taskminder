@@ -44,7 +44,7 @@ class TaskNotification extends Notification
             ->line('Deskripsi Tugas: ' . $this->task->description)
             ->line('Batas waktu mengerjakan: ' . $formattedDeadline)
             ->line('Harap untuk mengerjakan tugas sebelum batas waktu tiba.')
-            ->action('Lihat Tugas', 'http://localhost:5173/dashboard/task/student/' . $this->task->id);
+            ->action('Lihat Tugas', 'https://taskminder.pplgsmkn1ciomas.my.id/dashboard/task/student/' . $this->task->id);
     }
 
     // kirim push notification ke siswa melalui FCM
@@ -61,7 +61,7 @@ class TaskNotification extends Notification
             ])
             ->withData([
                 'icon' => url('assets/taskminder_logo 1 (mini 150x150).png'),
-                'click_action' => 'http://localhost:5173/dashboard/task/student/' . $this->task->id,
+                'click_action' => 'https://taskminder.pplgsmkn1ciomas.my.id/dashboard/task/student/' . $this->task->id,
             ])
             ->withHighestPossiblePriority();
     }
@@ -74,7 +74,7 @@ class TaskNotification extends Notification
             'title' => 'Tugas Baru: "' . $this->task->title . '"',
             'description' => 'Tugas baru oleh guru ' . $this->teacherName . ' telah ditugaskan dengan judul: ' . $this->task->title . '. Batas waktu mengerjakan tugas: ' . $formattedDeadline . ', Harap untuk mengerjakan tugas sebelum batas waktu tiba.',
             'deadline' => $formattedDeadline,
-            'link' => env('FRONTEND_URL') . '/dashboard/task/student/' . $this->task->id
+            'link' => 'https://taskminder.pplgsmkn1ciomas.my.id/dashboard/task/student/' . $this->task->id
         ];
     }
 }

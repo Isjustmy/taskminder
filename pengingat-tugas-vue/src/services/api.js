@@ -6,7 +6,7 @@ import Cookies from 'js-cookie'
 
 const api = axios.create({
   // set endpoint API
-  baseURL: 'http://127.0.0.1:8000',
+  baseURL: 'https://backendtaskminder.pplgsmkn1ciomas.my.id',
 
   // set header axios
   headers: {
